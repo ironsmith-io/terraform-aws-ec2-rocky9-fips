@@ -1,0 +1,101 @@
+#cloud-config
+# Rocky Linux 9 FIPS instance provisioning
+# Template vars rendered by Terraform templatefile()
+
+package_update: true
+package_upgrade_type: security
+
+%{ if enable_cloudwatch_logs ~}
+write_files:
+  - path: /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
+    permissions: '0644'
+    content: |
+      {
+        "agent": {
+          "run_as_user": "cwagent",
+          "metrics_collection_interval": 60
+        },
+        "metrics": {
+          "namespace": "CWAgent",
+          "metrics_collected": {
+            "mem": {
+              "measurement": ["mem_used_percent"]
+            },
+            "disk": {
+              "measurement": ["disk_used_percent"],
+              "resources": ["/"],
+              "ignore_file_system_types": ["tmpfs", "devtmpfs"],
+              "drop_device": true
+            }
+          },
+          "append_dimensions": {
+            "InstanceId": "$${aws:InstanceId}"
+          }
+        },
+        "logs": {
+          "logs_collected": {
+            "files": {
+              "collect_list": [
+                {
+                  "file_path": "/var/log/cloud-init-output.log",
+                  "log_group_name": "${log_group_name}",
+                  "log_stream_name": "{instance_id}/setup",
+                  "retention_in_days": 365
+                },
+                {
+                  "file_path": "/var/log/audit/audit.log",
+                  "log_group_name": "${log_group_name}",
+                  "log_stream_name": "{instance_id}/audit",
+                  "retention_in_days": 365
+                },
+                {
+                  "file_path": "/var/log/secure",
+                  "log_group_name": "${log_group_name}",
+                  "log_stream_name": "{instance_id}/secure",
+                  "retention_in_days": 365
+                }
+              ]
+            }
+          },
+          "log_stream_name": "{instance_id}/default",
+          "force_flush_interval": 15
+        }
+      }
+%{ endif ~}
+
+runcmd:
+%{ if enable_cloudwatch_logs ~}
+  # Install CloudWatch agent
+  - |
+    TOKEN=$(curl -sX PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 60")
+    AWS_REGION=$(curl -sH "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/placement/region)
+    dnf install -y --nogpgcheck "https://s3.$AWS_REGION.amazonaws.com/amazoncloudwatch-agent-$AWS_REGION/redhat/amd64/latest/amazon-cloudwatch-agent.rpm"
+  # Grant cwagent read access to log files
+  - setfacl -m u:cwagent:rx /var/log/audit 2>/dev/null || true
+  - setfacl -m u:cwagent:r /var/log/audit/audit.log 2>/dev/null || true
+  - setfacl -m u:cwagent:r /var/log/secure 2>/dev/null || true
+  # Start CloudWatch agent
+  - /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json -s
+  - systemctl enable amazon-cloudwatch-agent
+%{ endif ~}
+%{ if enable_ssm ~}
+  # Install and start SSM agent (not in default Rocky repos)
+  - |
+    TOKEN=$(curl -sX PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 60")
+    AWS_REGION=$(curl -sH "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/placement/region)
+    dnf install -y "https://s3.$AWS_REGION.amazonaws.com/amazon-ssm-$AWS_REGION/latest/linux_amd64/amazon-ssm-agent.rpm"
+  - systemctl enable --now amazon-ssm-agent
+%{ endif ~}
+%{ if !enable_ssh ~}
+  # Disable SSH (SSM-only access)
+  - systemctl disable --now sshd
+%{ endif ~}
+  # FIPS verification
+  - echo "FIPS mode:" $(cat /proc/sys/crypto/fips_enabled)
+  - echo "Crypto policy:" $(update-crypto-policies --show)
+  - fips-mode-setup --check || true
+%{ if user_data_extra != "" ~}
+  # User-provided extra commands
+  - |
+    ${user_data_extra}
+%{ endif ~}
