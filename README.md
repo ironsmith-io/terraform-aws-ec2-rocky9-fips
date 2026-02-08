@@ -5,6 +5,8 @@
 [![License](https://img.shields.io/github/license/ironsmith-io/terraform-aws-ec2-rocky9-fips)](https://github.com/ironsmith-io/terraform-aws-ec2-rocky9-fips/blob/main/LICENSE)
 [![FIPS 140-3](https://img.shields.io/badge/FIPS_140--3-enabled-green.svg)](https://csrc.nist.gov/projects/cryptographic-module-validation-program/certificate/5113)
 
+> **Status: Pending AWS Marketplace Approval** — The AMI required by this module is awaiting AWS Marketplace approval. This module is not usable until the AMI listing is publicly available. Do not attempt to use this module until this notice is removed.
+
 Terraform module that launches an EC2 instance from the [ironsmith Rocky Linux 9 FIPS AMI](https://aws.amazon.com/marketplace/pp/prodview-qoc5oyrenam2k) on AWS Marketplace. FIPS 140-3 mode is pre-enabled at the kernel level -- no additional configuration required.
 
 ## Overview
