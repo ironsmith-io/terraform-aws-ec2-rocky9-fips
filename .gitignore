@@ -51,6 +51,7 @@ terraform.rc
 # Keys and certificates
 *.pem
 *.key
+id_*_rocky9_fips*
 
 # Lock files (reusable modules should not pin provider hashes)
 .terraform.lock.hcl
