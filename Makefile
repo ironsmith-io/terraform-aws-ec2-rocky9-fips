@@ -13,7 +13,7 @@ RESET  := $(shell tput -Txterm sgr0 2>/dev/null)
 .PHONY: help init plan apply destroy pre-commit reset ssh ssm keygen \
 	dashboard logs fips-verify cloud-init status output \
 	test test-unit test-integration test-all test-setup \
-	validate fmt fmt-check lint docs clean
+	validate fmt fmt-check lint docs clean diagram
 
 help:
 	@echo "$(CYAN)Rocky 9 FIPS Terraform Module$(RESET)"
@@ -54,6 +54,7 @@ help:
 	@echo "  $(GREEN)docs$(RESET)        - Regenerate terraform-docs"
 	@echo "  $(GREEN)pre-commit$(RESET)  - Run pre-commit on all files"
 	@echo "  $(GREEN)clean$(RESET)       - Remove terraform cache and state files from example dir"
+	@echo "  $(GREEN)diagram$(RESET)     - Generate architecture diagram (docs/architecture.png)"
 
 init:
 	cd $(EXAMPLE_DIR) && terraform init
@@ -169,3 +170,20 @@ test-all: test test-integration
 test-setup:
 	@echo "Setting up Terratest dependencies..."
 	cd test && go mod tidy && go mod download
+
+#=============================================================================
+# Diagram generation
+#=============================================================================
+
+VENV_DIR = .venv
+
+diagram: $(VENV_DIR)/bin/diagrams
+	@echo "Generating architecture diagram..."
+	cd docs && ../$(VENV_DIR)/bin/python generate-diagram.py
+	@echo "Output: docs/architecture.png"
+
+$(VENV_DIR)/bin/diagrams: $(VENV_DIR)/bin/pip
+	$(VENV_DIR)/bin/pip install --quiet diagrams
+
+$(VENV_DIR)/bin/pip:
+	python3 -m venv $(VENV_DIR)

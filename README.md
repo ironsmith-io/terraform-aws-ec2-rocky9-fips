@@ -35,26 +35,9 @@ This is free -- you only pay for EC2 infrastructure costs. The subscription only
 
 ## Architecture
 
-```
-+---------------------------------------------------+
-|  AWS VPC                                          |
-|  +-----------------------------------------------+
-|  |  Security Group (SSH conditional)              |
-|  |  +-------------------------------------------+|
-|  |  |  EC2 Instance                              ||
-|  |  |  Rocky Linux 9 + FIPS enabled              ||
-|  |  |  IMDSv2 enforced                           ||
-|  |  |  EBS gp3 encrypted                         ||
-|  |  +-------------------------------------------+|
-|  +-----------------------------------------------+
-|                                                   |
-|  Optional:                                        |
-|  +-- IAM Role + Instance Profile                  |
-|  +-- CloudWatch Logs + Dashboard                  |
-|  +-- Security Alarms + SNS                        |
-|  +-- EBS Snapshots (DLM)                          |
-+---------------------------------------------------+
-```
+![Architecture Diagram](docs/architecture.png)
+
+*Dashed borders indicate opt-in features. Generate with `make diagram`.*
 
 ## Quick Start
 

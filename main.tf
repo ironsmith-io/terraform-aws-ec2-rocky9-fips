@@ -1,3 +1,4 @@
+
 # Rocky Linux 9 FIPS EC2 instance
 resource "aws_instance" "this" {
   ami                     = local.ami_id

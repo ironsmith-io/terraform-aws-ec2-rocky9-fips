@@ -58,5 +58,8 @@ terraform.rc
 # Claude Code
 CLAUDE.md
 
+# Python virtual environment (used for diagram generation)
+.venv/
+
 # OS
 .DS_Store
