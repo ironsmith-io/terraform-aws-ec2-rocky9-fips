@@ -12,8 +12,11 @@ permissions:
 
 jobs:
   validate:
-    name: Validate
+    name: Validate (TF ${{ matrix.terraform_version }})
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        terraform_version: ["1.5.7", "latest"]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -21,7 +24,7 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: "~> 1.7"
+          terraform_version: ${{ matrix.terraform_version }}
 
       - name: Terraform Format Check
         run: terraform fmt -check -recursive -diff
@@ -33,9 +36,12 @@ jobs:
         run: terraform validate
 
   unit-tests:
-    name: Unit Tests
+    name: Unit Tests (TF ${{ matrix.terraform_version }})
     runs-on: ubuntu-latest
     needs: validate
+    strategy:
+      matrix:
+        terraform_version: ["1.6.6", "latest"]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -43,7 +49,7 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: "~> 1.7"
+          terraform_version: ${{ matrix.terraform_version }}
 
       - name: Terraform Init
         run: terraform init -backend=false
