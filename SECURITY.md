@@ -42,7 +42,7 @@ This module addresses the following NIST 800-53 controls. This mapping is inform
 | AU-6 | Audit Review, Analysis, and Reporting | CloudWatch dashboard, security alarms, SNS notifications |
 | CM-7 | Least Functionality | Conditional SSH, conditional agents, no unnecessary services |
 | CP-9 | System Backup | Automated EBS snapshots via DLM |
-| SI-2 | Flaw Remediation | Security patching on boot via cloud-init (`package_upgrade_type: security`) |
+| SI-2 | Flaw Remediation | Security patching on first boot via cloud-init (`dnf upgrade --security`) |
 | SI-4 | System Monitoring | CloudWatch metrics (CPU, memory, disk), status check alarms |
 
 ## GovCloud Compatibility
@@ -53,7 +53,7 @@ This module supports AWS GovCloud (US) regions. ARN construction uses `data.aws_
 
 | Partition | Regions | Status |
 |-----------|---------|--------|
-| `aws` | us-east-1, us-west-2 | Tested in CI and integration tests |
+| `aws` | us-east-1, us-west-2 | Tested in integration tests |
 | `aws-us-gov` | us-gov-west-1, us-gov-east-1 | Supported (partition-aware ARNs), not tested in CI |
 | `aws-cn` | cn-north-1, cn-northwest-1 | Supported (partition-aware ARNs), not tested in CI |
 

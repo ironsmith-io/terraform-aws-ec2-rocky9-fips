@@ -3,7 +3,6 @@
 # Template vars rendered by Terraform templatefile()
 
 package_update: true
-package_upgrade_type: security
 
 %{ if enable_cloudwatch_logs ~}
 write_files:
@@ -64,6 +63,8 @@ write_files:
 %{ endif ~}
 
 runcmd:
+  # Security patches (first boot only)
+  - dnf upgrade --security -y
 %{ if enable_cloudwatch_logs ~}
   # Install CloudWatch agent
   - |

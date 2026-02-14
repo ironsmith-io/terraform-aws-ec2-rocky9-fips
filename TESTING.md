@@ -23,7 +23,7 @@ make test-all            # Everything
 
 ## Unit Tests (no AWS)
 
-34 tests covering variable validation, preconditions, check blocks, and feature flag combinations.
+58 tests covering variable validation, preconditions, check blocks, and feature flag combinations.
 
 ```bash
 make test-unit
@@ -31,15 +31,17 @@ make test-unit
 
 | Category | Count | What they test |
 |----------|-------|---------------|
-| Variable validation (`rejects_*`) | 13 | Invalid inputs: subnet format, CIDR, instance type, retention, volume size |
+| Variable validation (`rejects_*`) | 20 | Invalid inputs: subnet format, CIDR, instance type, retention, volume size, EBS IOPS/throughput, ingress rules |
 | Preconditions (`rejects_*`) | 2 | Hard errors: no remote access, SSH without key pair |
-| Check block warnings (`warns_*`) | 4 | Warnings: alarms without CW, SNS without alarms, email without SNS, KMS without CW |
-| Valid inputs (`accepts_*`) | 9 | Boundary values, valid formats, pinned AMI |
-| Feature flags (`accepts_*`) | 6 | SSM-only, CloudWatch, all features, spot, snapshots, custom name |
+| Check block warnings (`warns_*`) | 9 | Warnings: alarms without CW, SNS without alarms, email without SNS, KMS without CW, EIP without public IP, io needs IOPS, throughput not for io, IOPS not for gp2 |
+| Valid inputs (`accepts_*`) | 9 | Boundary values, valid formats, pinned AMI, instance types |
+| Feature flags (`accepts_*`) | 8 | SSM-only, CloudWatch, all features, spot, snapshots, custom name, public IP disabled, EIP |
+| EBS configurations (`accepts_*`) | 4 | io1, io2, gp2, gp3 with custom IOPS/throughput |
+| Ingress & patterns (`accepts_*`) | 6 | Custom ingress rules, SSM-only pattern, private subnet, full monitoring |
 
 ## Integration Tests (deploys AWS resources)
 
-3 deployment configurations run in parallel. Each deploys an EC2 instance, verifies via SSH and AWS API, then destroys.
+4 deployment configurations run in parallel. Each deploys an EC2 instance, verifies via SSH and AWS API, then destroys.
 
 ### Setup
 
@@ -83,6 +85,7 @@ Note: `-run TestRocky9FIPS$` uses `$` anchor to match only `TestRocky9FIPS`, not
 | `TestRocky9FIPSMinimal` | `examples/minimal` | SSH only | FIPS, SELinux, XFS, tags, IMDSv2 |
 | `TestRocky9FIPS` | `examples/complete` | CloudWatch + SSM | All outputs, FIPS, SELinux, XFS, tags, agents, IMDSv2 |
 | `TestRocky9FIPSFullMonitoring` | `examples/complete` | All features | SNS, log group, alarms, snapshots, FIPS, SELinux, agents |
+| `TestRocky9FIPSSpot` | `examples/complete` | Spot instance | Spot lifecycle via AWS API, FIPS, SELinux |
 
 ### What Each Test Verifies
 
@@ -94,7 +97,7 @@ Note: `-run TestRocky9FIPS$` uses `$` anchor to match only `TestRocky9FIPS`, not
 
 **Agents (standard + full):** CloudWatch agent active, SSM agent active
 
-**Outputs (standard):** All 11 module outputs populated and correct
+**Outputs (standard):** All 12 module outputs populated and correct
 
 **Monitoring (full only):** SNS topic ARN valid, log group name matches `/{name}/ec2`
 

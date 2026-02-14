@@ -120,7 +120,7 @@ module "rocky9_fips" {
 }
 ```
 
-> **Important: AMI updates cause instance replacement.** When a new AMI is published, `terraform plan` will show a destroy/create diff because the AMI ID changes via `most_recent = true`. This **replaces the instance** (new instance ID, new IP, data on instance store is lost). EBS root volumes are preserved by default (`delete_volume_on_termination = false`). For production, pin the AMI with `ami_id` to control when updates are applied.
+> **Important: AMI updates cause instance replacement.** When a new AMI is published, `terraform plan` will show a destroy/create diff because the AMI ID changes via `most_recent = true`. This **replaces the instance** (new instance ID, new IP, data on instance store is lost). EBS root volumes are deleted by default (`delete_volume_on_termination = true`). For production, pin the AMI with `ami_id` and set `delete_volume_on_termination = false` to control when updates are applied.
 
 ### Access Combinations
 
@@ -157,7 +157,7 @@ The AMI also includes verification documentation at `/usr/share/doc/ironsmith/ro
 | Feature | Default | Description |
 |---------|---------|-------------|
 | EBS Encryption | Always on | gp3 volumes, always encrypted |
-| Volume Preservation | `true` | EBS persists after instance termination |
+| Volume Deletion | `true` | EBS root volume deleted on termination (set `false` to preserve) |
 | EBS Snapshots | Off | Daily DLM snapshots (opt-in) |
 | user_data Changes | Ignored | Prevents accidental instance replacement |
 
