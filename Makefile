@@ -1,6 +1,7 @@
 # Makefile for Rocky 9 FIPS Terraform module
 
-EXAMPLE_DIR = examples/complete
+EXAMPLE     ?= complete
+EXAMPLE_DIR = examples/$(EXAMPLE)
 SSH_KEY     = ./id_rsa_rocky9_fips
 KEY_NAME    = ironsmith-rocky9-fips
 
@@ -41,6 +42,10 @@ help:
 	@echo "  $(GREEN)init$(RESET)               - Initialize terraform"
 	@echo "  $(GREEN)apply$(RESET)              - Apply with auto-approve"
 	@echo "  $(GREEN)destroy$(RESET)            - Destroy with auto-approve"
+	@echo ""
+	@echo "  Most targets accept $(CYAN)EXAMPLE=$(RESET) to select an example (default: complete)."
+	@echo "  Available: complete, minimal, ssm-only, private-subnet, full-monitoring"
+	@echo "  Example:   $(CYAN)make apply EXAMPLE=ssm-only$(RESET)"
 	@echo ""
 	@echo "$(YELLOW)Testing:$(RESET)"
 	@echo "  $(GREEN)test$(RESET)               - Lint + unit tests (no AWS, ~30s)"
