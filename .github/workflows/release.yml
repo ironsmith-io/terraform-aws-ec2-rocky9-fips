@@ -1,0 +1,51 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '*.tf'
+      - 'cloud-init.yml'
+      - '.releaserc.json'
+      - '.github/workflows/release.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  ci:
+    name: CI
+    uses: ./.github/workflows/ci.yml
+
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    needs: ci
+    if: github.repository_owner == 'ironsmith-io'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install semantic-release plugins
+        run: |
+          npm install conventional-changelog-conventionalcommits@8
+          npm install @semantic-release/changelog@6
+          npm install @semantic-release/git@10
+
+      - name: Run semantic-release
+        uses: cycjimmy/semantic-release-action@v4
+        with:
+          semantic_version: 24
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

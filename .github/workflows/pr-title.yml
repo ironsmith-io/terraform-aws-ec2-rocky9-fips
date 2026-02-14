@@ -1,0 +1,35 @@
+name: Validate PR Title
+
+on:
+  pull_request_target:
+    types: [opened, edited, synchronize]
+
+permissions:
+  pull-requests: read
+
+jobs:
+  validate:
+    name: Conventional Commit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR title
+        uses: amannn/action-semantic-pull-request@v5
+        with:
+          types: |
+            feat
+            fix
+            docs
+            ci
+            chore
+            refactor
+            perf
+            test
+            revert
+            style
+          requireScope: false
+          subjectPattern: ^[A-Z].+$
+          subjectPatternError: |
+            PR title subject must start with an uppercase letter.
+            Example: "feat: Add elastic IP support"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
