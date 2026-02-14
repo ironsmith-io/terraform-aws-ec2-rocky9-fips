@@ -80,7 +80,7 @@ variable "ebs_iops" {
   default     = null
   description = "Provisioned IOPS for the root volume. Required for io1/io2, optional for gp3 (default 3000)."
   validation {
-    condition     = var.ebs_iops == null || (var.ebs_iops >= 3000 && var.ebs_iops <= 64000)
+    condition     = var.ebs_iops == null || try(var.ebs_iops >= 3000 && var.ebs_iops <= 64000, false)
     error_message = "EBS IOPS must be between 3000 and 64000 when set."
   }
 }
@@ -90,7 +90,7 @@ variable "ebs_throughput" {
   default     = null
   description = "Throughput in MiB/s for the root volume. Only applicable to gp3 (default 125)."
   validation {
-    condition     = var.ebs_throughput == null || (var.ebs_throughput >= 125 && var.ebs_throughput <= 1000)
+    condition     = var.ebs_throughput == null || try(var.ebs_throughput >= 125 && var.ebs_throughput <= 1000, false)
     error_message = "EBS throughput must be between 125 and 1000 MiB/s when set."
   }
 }
