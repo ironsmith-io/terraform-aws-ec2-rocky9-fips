@@ -12,7 +12,7 @@ provider "aws" {
 module "rocky9_fips" {
   source = "../../"
 
-  # Required variables
+  name          = var.name
   subnet_id     = var.subnet_id
   key_pair_name = var.key_pair_name
   ip_allow_ssh  = var.ip_allow_ssh

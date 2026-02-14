@@ -12,7 +12,7 @@ RESET  := $(shell tput -Txterm sgr0 2>/dev/null)
 
 .DEFAULT_GOAL := help
 
-.PHONY: help init plan apply destroy pre-commit reset ssh ssm keygen setup \
+.PHONY: help help-all init plan apply destroy pre-commit reset ssh ssm keygen setup \
 	dashboard logs fips-verify cloud-init status output \
 	test test-unit test-integration test-all test-setup \
 	validate fmt fmt-check lint docs clean clean-aws diagram
@@ -20,47 +20,53 @@ RESET  := $(shell tput -Txterm sgr0 2>/dev/null)
 help:
 	@echo "$(CYAN)Rocky 9 FIPS Terraform Module$(RESET)"
 	@echo ""
-	@echo "$(YELLOW)Terraform:$(RESET)"
-	@echo "  $(GREEN)init$(RESET)        - Initialize terraform"
-	@echo "  $(GREEN)plan$(RESET)        - Run terraform plan"
-	@echo "  $(GREEN)apply$(RESET)       - Run terraform apply with auto-approve"
-	@echo "  $(GREEN)destroy$(RESET)     - Run terraform destroy with auto-approve"
-	@echo "  $(GREEN)reset$(RESET)       - Destroy and then apply terraform (full reset)"
-	@echo "  $(GREEN)output$(RESET)      - Show terraform outputs"
-	@echo ""
-	@echo "$(YELLOW)Setup:$(RESET)"
-	@echo "  $(GREEN)setup$(RESET)       - One-time setup: create tfvars and SSH keypair"
-	@echo "  $(GREEN)keygen$(RESET)      - Generate FIPS-compliant RSA-3072 keypair and import to AWS"
-	@echo ""
-	@echo "$(YELLOW)Access:$(RESET)"
-	@echo "  $(GREEN)ssh$(RESET)         - SSH into the EC2 instance"
-	@echo "  $(GREEN)ssm$(RESET)         - Connect via SSM Session Manager"
-	@echo ""
-	@echo "$(YELLOW)CloudWatch:$(RESET)"
-	@echo "  $(GREEN)dashboard$(RESET)   - Open CloudWatch dashboard in browser"
-	@echo "  $(GREEN)logs$(RESET)        - Tail CloudWatch logs in terminal"
-	@echo ""
-	@echo "$(YELLOW)Debug:$(RESET)"
-	@echo "  $(GREEN)fips-verify$(RESET) - Verify FIPS mode on running instance"
-	@echo "  $(GREEN)cloud-init$(RESET)  - View cloud-init output log"
-	@echo "  $(GREEN)status$(RESET)      - Check service status"
+	@echo "$(YELLOW)Getting started:$(RESET)"
+	@echo "  $(GREEN)setup$(RESET)              - One-time: create tfvars + SSH keypair"
+	@echo "  $(GREEN)init$(RESET)               - Initialize terraform"
+	@echo "  $(GREEN)apply$(RESET)              - Apply with auto-approve"
+	@echo "  $(GREEN)destroy$(RESET)            - Destroy with auto-approve"
 	@echo ""
 	@echo "$(YELLOW)Testing:$(RESET)"
-	@echo "  $(GREEN)test$(RESET)              - Run static analysis and unit tests (fast, no AWS)"
-	@echo "  $(GREEN)test-unit$(RESET)         - Run terraform test unit tests"
-	@echo "  $(GREEN)test-integration$(RESET)  - Run Terratest integration tests (deploys resources)"
-	@echo "  $(GREEN)test-all$(RESET)          - Run all tests"
+	@echo "  $(GREEN)test$(RESET)               - Lint + unit tests (no AWS, ~30s)"
+	@echo "  $(GREEN)test-integration$(RESET)   - Terratest integration tests (~15min, deploys AWS)"
+	@echo "  $(GREEN)test-all$(RESET)           - Everything"
 	@echo ""
 	@echo "$(YELLOW)Code quality:$(RESET)"
-	@echo "  $(GREEN)validate$(RESET)    - Run terraform validate"
-	@echo "  $(GREEN)fmt$(RESET)         - Format all terraform files"
-	@echo "  $(GREEN)fmt-check$(RESET)   - Check terraform formatting (CI-friendly)"
-	@echo "  $(GREEN)lint$(RESET)        - Run tflint"
-	@echo "  $(GREEN)docs$(RESET)        - Regenerate terraform-docs"
-	@echo "  $(GREEN)pre-commit$(RESET)  - Run pre-commit on all files"
-	@echo "  $(GREEN)clean$(RESET)       - Remove all local build artifacts (terraform, venv, SSH key)"
-	@echo "  $(GREEN)clean-aws$(RESET)   - Delete AWS key pair created by 'make keygen'"
-	@echo "  $(GREEN)diagram$(RESET)     - Generate architecture diagram (docs/architecture.png)"
+	@echo "  $(GREEN)fmt$(RESET)                - Format terraform files"
+	@echo "  $(GREEN)pre-commit$(RESET)         - Run all pre-commit hooks"
+	@echo ""
+	@echo "Run $(CYAN)make help-all$(RESET) for all targets (access, debug, CloudWatch, etc.)"
+
+help-all: help
+	@echo ""
+	@echo "$(YELLOW)Terraform:$(RESET)"
+	@echo "  $(GREEN)plan$(RESET)               - Run terraform plan"
+	@echo "  $(GREEN)reset$(RESET)              - Destroy and reapply"
+	@echo "  $(GREEN)output$(RESET)             - Show terraform outputs"
+	@echo ""
+	@echo "$(YELLOW)Access:$(RESET)"
+	@echo "  $(GREEN)ssh$(RESET)                - SSH into EC2 instance"
+	@echo "  $(GREEN)ssm$(RESET)                - Connect via SSM Session Manager"
+	@echo "  $(GREEN)keygen$(RESET)             - Generate RSA-3072 keypair + import to AWS"
+	@echo ""
+	@echo "$(YELLOW)CloudWatch:$(RESET)"
+	@echo "  $(GREEN)dashboard$(RESET)          - Open CloudWatch dashboard in browser"
+	@echo "  $(GREEN)logs$(RESET)               - Tail CloudWatch logs"
+	@echo ""
+	@echo "$(YELLOW)Debug:$(RESET)"
+	@echo "  $(GREEN)fips-verify$(RESET)        - Verify FIPS mode on instance"
+	@echo "  $(GREEN)cloud-init$(RESET)         - View cloud-init output log"
+	@echo "  $(GREEN)status$(RESET)             - Check service status"
+	@echo ""
+	@echo "$(YELLOW)Additional:$(RESET)"
+	@echo "  $(GREEN)test-unit$(RESET)          - Unit tests only"
+	@echo "  $(GREEN)validate$(RESET)           - terraform validate"
+	@echo "  $(GREEN)fmt-check$(RESET)          - Check formatting (CI-friendly)"
+	@echo "  $(GREEN)lint$(RESET)               - Run tflint"
+	@echo "  $(GREEN)docs$(RESET)               - Regenerate terraform-docs"
+	@echo "  $(GREEN)diagram$(RESET)            - Generate architecture diagram"
+	@echo "  $(GREEN)clean$(RESET)              - Remove local build artifacts"
+	@echo "  $(GREEN)clean-aws$(RESET)          - Delete AWS key pair"
 
 init:
 	cd $(EXAMPLE_DIR) && terraform init
@@ -217,10 +223,11 @@ test-unit:
 test-integration: test-setup
 	@echo "Running Terratest integration tests..."
 	@echo "WARNING: This will deploy real AWS resources and incur costs"
-	@if [ -z "$$TEST_SUBNET_ID" ]; then echo "ERROR: TEST_SUBNET_ID not set"; exit 1; fi
-	@if [ -z "$$TEST_KEY_PAIR" ]; then echo "ERROR: TEST_KEY_PAIR not set"; exit 1; fi
-	@if [ -z "$$TEST_PRIVATE_KEY_PATH" ]; then echo "ERROR: TEST_PRIVATE_KEY_PATH not set"; exit 1; fi
-	cd test && go test -v -timeout 30m -run TestRocky9FIPS
+	@if [ ! -f "$(SSH_KEY)" ]; then echo "ERROR: SSH key not found: $(SSH_KEY). Run 'make keygen' first."; exit 1; fi
+	@SUBNET=$$(grep '^subnet_id' $(EXAMPLE_DIR)/terraform.tfvars 2>/dev/null | head -1 | sed 's/.*"\(.*\)"/\1/'); \
+	if [ -z "$$SUBNET" ]; then echo "ERROR: Set subnet_id in $(EXAMPLE_DIR)/terraform.tfvars. Run 'make setup' first."; exit 1; fi; \
+	export TEST_SUBNET_ID=$$SUBNET; \
+	cd test && go test -v -timeout 45m -run TestRocky9FIPS
 
 test-all: test test-integration
 	@echo "All tests passed"

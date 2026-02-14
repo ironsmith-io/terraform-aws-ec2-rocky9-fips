@@ -196,6 +196,99 @@ run "rejects_snapshot_retention_too_high" {
   expect_failures = [var.snapshot_retention_days]
 }
 
+run "rejects_root_volume_too_small" {
+  command = plan
+
+  variables {
+    subnet_id        = "subnet-12345678"
+    key_pair_name    = "test-key"
+    root_volume_size = 5
+  }
+
+  expect_failures = [var.root_volume_size]
+}
+
+# =============================================================================
+# Negative Tests - Preconditions (hard errors on aws_instance)
+# =============================================================================
+
+run "rejects_no_remote_access" {
+  command = plan
+
+  variables {
+    subnet_id  = "subnet-12345678"
+    enable_ssh = false
+    enable_ssm = false
+  }
+
+  expect_failures = [aws_instance.this]
+}
+
+run "rejects_ssh_without_keypair" {
+  command = plan
+
+  variables {
+    subnet_id  = "subnet-12345678"
+    enable_ssh = true
+  }
+
+  expect_failures = [aws_instance.this]
+}
+
+# =============================================================================
+# Negative Tests - Check Block Warnings
+# =============================================================================
+
+run "warns_alarms_without_cloudwatch" {
+  command = plan
+
+  variables {
+    subnet_id              = "subnet-12345678"
+    key_pair_name          = "test-key"
+    enable_security_alarms = true
+    enable_cloudwatch_logs = false
+  }
+
+  expect_failures = [check.security_alarms_require_cloudwatch]
+}
+
+run "warns_sns_without_alarms" {
+  command = plan
+
+  variables {
+    subnet_id              = "subnet-12345678"
+    key_pair_name          = "test-key"
+    create_sns_topic       = true
+    enable_security_alarms = false
+  }
+
+  expect_failures = [check.sns_topic_requires_alarms]
+}
+
+run "warns_email_without_sns" {
+  command = plan
+
+  variables {
+    subnet_id     = "subnet-12345678"
+    key_pair_name = "test-key"
+    alarm_email   = "test@example.com"
+  }
+
+  expect_failures = [check.alarm_email_requires_sns_topic]
+}
+
+run "warns_kms_without_cloudwatch" {
+  command = plan
+
+  variables {
+    subnet_id             = "subnet-12345678"
+    key_pair_name         = "test-key"
+    cloudwatch_kms_key_id = "arn:aws:kms:us-east-1:123456789012:key/mock-key-id"
+  }
+
+  expect_failures = [check.kms_key_requires_cloudwatch]
+}
+
 # =============================================================================
 # Positive Tests - Valid Inputs
 # =============================================================================

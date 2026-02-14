@@ -11,11 +11,12 @@ resource "aws_instance" "this" {
   disable_api_termination = var.enable_termination_protection
 
   user_data = templatefile("${path.module}/cloud-init.yml", {
-    enable_cloudwatch_logs = var.enable_cloudwatch_logs
-    enable_ssm             = var.enable_ssm
-    enable_ssh             = var.enable_ssh
-    user_data_extra        = var.user_data_extra
-    log_group_name         = local.log_group_name
+    enable_cloudwatch_logs        = var.enable_cloudwatch_logs
+    enable_ssm                    = var.enable_ssm
+    enable_ssh                    = var.enable_ssh
+    user_data_extra               = var.user_data_extra
+    log_group_name                = local.log_group_name
+    cloudwatch_log_retention_days = var.cloudwatch_log_retention_days
   })
 
   # Spot instance configuration (conditional)
@@ -49,6 +50,16 @@ resource "aws_instance" "this" {
   # To force replacement: terraform taint module.rocky9_fips.aws_instance.this
   lifecycle {
     ignore_changes = [user_data]
+
+    precondition {
+      condition     = var.enable_ssh || var.enable_ssm
+      error_message = "At least one of enable_ssh or enable_ssm must be true for remote access."
+    }
+
+    precondition {
+      condition     = !var.enable_ssh || var.key_pair_name != null
+      error_message = "key_pair_name is required when enable_ssh = true."
+    }
   }
 }
 
@@ -520,20 +531,6 @@ resource "aws_dlm_lifecycle_policy" "this" {
 #=============================================================================
 # Validation Checks (Terraform 1.5+)
 #=============================================================================
-
-check "remote_access_required" {
-  assert {
-    condition     = var.enable_ssh || var.enable_ssm
-    error_message = "At least one of enable_ssh or enable_ssm must be true for remote access."
-  }
-}
-
-check "ssh_requires_key_pair" {
-  assert {
-    condition     = !var.enable_ssh || var.key_pair_name != null
-    error_message = "key_pair_name is required when enable_ssh = true."
-  }
-}
 
 check "security_alarms_require_cloudwatch" {
   assert {

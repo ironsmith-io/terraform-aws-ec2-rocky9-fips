@@ -13,6 +13,11 @@ variable "key_pair_name" {
   description = "EC2 key pair name"
 }
 
+variable "name" {
+  type    = string
+  default = "rocky9-fips"
+}
+
 variable "ip_allow_ssh" {
   type        = set(string)
   default     = []

@@ -36,7 +36,7 @@ variable "ami_owner" {
 variable "ami_product_code" {
   type        = string
   default     = "5fbnogz030e3m2ddf2yvlqhho"
-  description = "AWS Marketplace product code for the ironsmith Rocky 9 FIPS AMI"
+  description = "AWS Marketplace product code for the Ironsmith Rocky 9 FIPS AMI"
 }
 
 variable "instance_type" {
@@ -59,6 +59,10 @@ variable "root_volume_size" {
   type        = number
   default     = 10
   description = "Root EBS volume size in GB"
+  validation {
+    condition     = var.root_volume_size >= 10
+    error_message = "Root volume must be at least 10 GB (Rocky Linux minimum)."
+  }
 }
 
 variable "create_spot_instance" {
