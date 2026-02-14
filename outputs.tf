@@ -52,3 +52,8 @@ output "sns_topic_arn" {
   value       = var.create_sns_topic ? aws_sns_topic.alarms[0].arn : null
   description = "SNS Topic ARN for alarm notifications (when create_sns_topic is true)"
 }
+
+output "elastic_ip" {
+  value       = var.associate_elastic_ip ? aws_eip.this[0].public_ip : null
+  description = "Elastic IP address (when associate_elastic_ip is true)"
+}

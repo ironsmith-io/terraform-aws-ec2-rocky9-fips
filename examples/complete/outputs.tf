@@ -41,3 +41,7 @@ output "cloudwatch_log_group_name" {
 output "sns_topic_arn" {
   value = module.rocky9_fips.sns_topic_arn
 }
+
+output "elastic_ip" {
+  value = module.rocky9_fips.elastic_ip
+}

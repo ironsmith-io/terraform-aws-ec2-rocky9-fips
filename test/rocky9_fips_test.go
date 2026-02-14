@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	terratest_aws "github.com/gruntwork-io/terratest/modules/aws"
 	"github.com/gruntwork-io/terratest/modules/files"
 	"github.com/gruntwork-io/terratest/modules/retry"
@@ -336,4 +338,68 @@ func TestRocky9FIPSFullMonitoring(t *testing.T) {
 		require.NoError(t, err)
 		assert.Contains(t, result, "active")
 	})
+}
+
+// =============================================================================
+// Test: Spot Instance
+// =============================================================================
+
+// TestRocky9FIPSSpot deploys a spot instance and verifies spot lifecycle,
+// outputs, tags, and FIPS checks.
+func TestRocky9FIPSSpot(t *testing.T) {
+	t.Parallel()
+
+	subnetID, keyPair, privateKeyPath, awsRegion := getTestEnv(t)
+	projectDir, err := files.CopyTerraformFolderToTemp("..", "rocky9-spot-")
+	require.NoError(t, err)
+
+	terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
+		TerraformDir: filepath.Join(projectDir, "examples", "complete"),
+		Vars: map[string]interface{}{
+			"subnet_id":            subnetID,
+			"key_pair_name":        keyPair,
+			"ip_allow_ssh":         []string{"0.0.0.0/0"},
+			"name":                 "rocky9-fips-spot",
+			"create_spot_instance": true,
+			"aws_region":           awsRegion,
+		},
+	})
+
+	defer terraform.Destroy(t, terraformOptions)
+	terraform.InitAndApply(t, terraformOptions)
+
+	instanceID := terraform.Output(t, terraformOptions, "instance_id")
+	publicIP := terraform.Output(t, terraformOptions, "public_ip")
+	amiID := terraform.Output(t, terraformOptions, "ami_id")
+
+	t.Run("outputs_populated", func(t *testing.T) {
+		assert.NotEmpty(t, instanceID)
+		assert.NotEmpty(t, publicIP)
+		assert.NotEmpty(t, amiID)
+	})
+
+	t.Run("instance_is_spot", func(t *testing.T) {
+		ec2Client := terratest_aws.NewEc2Client(t, awsRegion)
+		input := &ec2.DescribeInstancesInput{
+			InstanceIds: []*string{aws.String(instanceID)},
+		}
+		result, err := ec2Client.DescribeInstances(input)
+		require.NoError(t, err)
+		require.Len(t, result.Reservations, 1)
+		require.Len(t, result.Reservations[0].Instances, 1)
+
+		instance := result.Reservations[0].Instances[0]
+		assert.Equal(t, "spot", aws.StringValue(instance.InstanceLifecycle), "Instance should be a spot instance")
+	})
+
+	t.Run("tags_correct", func(t *testing.T) {
+		tags := terratest_aws.GetTagsForEc2Instance(t, awsRegion, instanceID)
+		assert.Equal(t, "rocky9-fips-spot", tags["Name"])
+		assert.Equal(t, "terraform", tags["ManagedBy"])
+		assert.Equal(t, "enabled", tags["FIPS"])
+	})
+
+	host := buildSSHHost(t, publicIP, privateKeyPath)
+	waitForCloudInit(t, host)
+	runFIPSChecks(t, host)
 }

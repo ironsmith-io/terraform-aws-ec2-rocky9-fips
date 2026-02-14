@@ -1,14 +1,15 @@
 
 # Rocky Linux 9 FIPS EC2 instance
 resource "aws_instance" "this" {
-  ami                     = local.ami_id
-  key_name                = var.key_pair_name
-  instance_type           = var.instance_type
-  vpc_security_group_ids  = concat([aws_security_group.this.id], var.additional_security_group_ids)
-  subnet_id               = var.subnet_id
-  tags                    = local.common_tags
-  iam_instance_profile    = local.use_instance_profile ? aws_iam_instance_profile.this[0].name : null
-  disable_api_termination = var.enable_termination_protection
+  ami                         = local.ami_id
+  key_name                    = var.key_pair_name
+  instance_type               = var.instance_type
+  vpc_security_group_ids      = concat([aws_security_group.this.id], var.additional_security_group_ids)
+  subnet_id                   = var.subnet_id
+  tags                        = local.common_tags
+  iam_instance_profile        = local.use_instance_profile ? aws_iam_instance_profile.this[0].name : null
+  disable_api_termination     = var.enable_termination_protection
+  associate_public_ip_address = var.enable_public_ip
 
   user_data = templatefile("${path.module}/cloud-init.yml", {
     enable_cloudwatch_logs        = var.enable_cloudwatch_logs
@@ -39,8 +40,10 @@ resource "aws_instance" "this" {
   }
 
   root_block_device {
-    volume_type           = "gp3"
+    volume_type           = var.ebs_volume_type
     volume_size           = var.root_volume_size
+    iops                  = var.ebs_iops
+    throughput            = var.ebs_throughput
     delete_on_termination = var.delete_volume_on_termination
     encrypted             = true
     tags                  = local.common_tags
@@ -85,6 +88,18 @@ resource "aws_security_group" "this" {
     }
   }
 
+  # Custom ingress rules
+  dynamic "ingress" {
+    for_each = var.ingress_rules
+    content {
+      from_port   = ingress.value.port
+      to_port     = ingress.value.port
+      protocol    = "TCP"
+      description = ingress.value.description
+      cidr_blocks = ingress.value.cidr_blocks
+    }
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -92,6 +107,22 @@ resource "aws_security_group" "this" {
     description = "Allow all outbound traffic"
     cidr_blocks = ["0.0.0.0/0"]
   }
+}
+
+#=============================================================================
+# Elastic IP (conditional)
+#=============================================================================
+
+resource "aws_eip" "this" {
+  count  = var.associate_elastic_ip ? 1 : 0
+  domain = "vpc"
+  tags   = local.common_tags
+}
+
+resource "aws_eip_association" "this" {
+  count         = var.associate_elastic_ip ? 1 : 0
+  instance_id   = aws_instance.this.id
+  allocation_id = aws_eip.this[0].id
 }
 
 #=============================================================================
@@ -557,5 +588,33 @@ check "kms_key_requires_cloudwatch" {
   assert {
     condition     = var.cloudwatch_kms_key_id == null || var.enable_cloudwatch_logs
     error_message = "cloudwatch_kms_key_id is only used when enable_cloudwatch_logs = true."
+  }
+}
+
+check "elastic_ip_without_public_ip" {
+  assert {
+    condition     = !var.associate_elastic_ip || var.enable_public_ip
+    error_message = "associate_elastic_ip requires enable_public_ip = true to be useful."
+  }
+}
+
+check "iops_required_for_io_volumes" {
+  assert {
+    condition     = !contains(["io1", "io2"], var.ebs_volume_type) || var.ebs_iops != null
+    error_message = "ebs_iops is required when ebs_volume_type is io1 or io2."
+  }
+}
+
+check "throughput_only_for_gp3" {
+  assert {
+    condition     = var.ebs_throughput == null || var.ebs_volume_type == "gp3"
+    error_message = "ebs_throughput is only applicable to gp3 volume type."
+  }
+}
+
+check "iops_not_for_gp2" {
+  assert {
+    condition     = var.ebs_iops == null || var.ebs_volume_type != "gp2"
+    error_message = "ebs_iops cannot be set for gp2 volume type."
   }
 }

@@ -45,6 +45,7 @@ help:
 	@echo "$(YELLOW)Testing:$(RESET)"
 	@echo "  $(GREEN)test$(RESET)               - Lint + unit tests (no AWS, ~30s)"
 	@echo "  $(GREEN)test-integration$(RESET)   - Terratest integration tests (~15min, deploys AWS)"
+	@echo "                          RUN=TestName to run a single test"
 	@echo "  $(GREEN)test-all$(RESET)           - Everything"
 	@echo ""
 	@echo "$(YELLOW)Code quality:$(RESET)"
@@ -248,7 +249,7 @@ test-integration: test-setup
 	@SUBNET=$$(grep '^subnet_id' $(EXAMPLE_DIR)/terraform.tfvars 2>/dev/null | head -1 | sed 's/.*"\(.*\)"/\1/'); \
 	if [ -z "$$SUBNET" ]; then echo "ERROR: Set subnet_id in $(EXAMPLE_DIR)/terraform.tfvars. Run 'make setup' first."; exit 1; fi; \
 	export TEST_SUBNET_ID=$$SUBNET; \
-	cd test && go test -v -timeout 45m -run TestRocky9FIPS
+	cd test && go test -v -timeout 45m -run $(or $(RUN),TestRocky9FIPS)
 
 test-all: test test-integration
 	@echo "All tests passed"

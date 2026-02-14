@@ -19,9 +19,15 @@ module "rocky9_fips" {
   instance_type        = var.instance_type
   create_spot_instance = var.create_spot_instance
   root_volume_size     = var.root_volume_size
+  ebs_volume_type      = var.ebs_volume_type
+  ebs_iops             = var.ebs_iops
+  ebs_throughput       = var.ebs_throughput
   name                 = var.name
 
   # Network & Access
+  enable_public_ip              = var.enable_public_ip
+  associate_elastic_ip          = var.associate_elastic_ip
+  ingress_rules                 = var.ingress_rules
   ip_allow_ssh                  = var.ip_allow_ssh
   enable_ssh                    = var.enable_ssh
   enable_ssm                    = var.enable_ssm

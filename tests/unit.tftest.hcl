@@ -208,6 +208,94 @@ run "rejects_root_volume_too_small" {
   expect_failures = [var.root_volume_size]
 }
 
+run "rejects_invalid_ebs_volume_type" {
+  command = plan
+
+  variables {
+    subnet_id       = "subnet-12345678"
+    key_pair_name   = "test-key"
+    ebs_volume_type = "st1"
+  }
+
+  expect_failures = [var.ebs_volume_type]
+}
+
+run "rejects_ebs_iops_too_low" {
+  command = plan
+
+  variables {
+    subnet_id     = "subnet-12345678"
+    key_pair_name = "test-key"
+    ebs_iops      = 100
+  }
+
+  expect_failures = [var.ebs_iops]
+}
+
+run "rejects_ebs_iops_too_high" {
+  command = plan
+
+  variables {
+    subnet_id     = "subnet-12345678"
+    key_pair_name = "test-key"
+    ebs_iops      = 100000
+  }
+
+  expect_failures = [var.ebs_iops]
+}
+
+run "rejects_ebs_throughput_too_low" {
+  command = plan
+
+  variables {
+    subnet_id      = "subnet-12345678"
+    key_pair_name  = "test-key"
+    ebs_throughput = 50
+  }
+
+  expect_failures = [var.ebs_throughput]
+}
+
+run "rejects_ebs_throughput_too_high" {
+  command = plan
+
+  variables {
+    subnet_id      = "subnet-12345678"
+    key_pair_name  = "test-key"
+    ebs_throughput = 2000
+  }
+
+  expect_failures = [var.ebs_throughput]
+}
+
+run "rejects_ingress_port_zero" {
+  command = plan
+
+  variables {
+    subnet_id     = "subnet-12345678"
+    key_pair_name = "test-key"
+    ingress_rules = [
+      { port = 0, cidr_blocks = ["10.0.0.0/8"], description = "Invalid" }
+    ]
+  }
+
+  expect_failures = [var.ingress_rules]
+}
+
+run "rejects_ingress_bad_cidr" {
+  command = plan
+
+  variables {
+    subnet_id     = "subnet-12345678"
+    key_pair_name = "test-key"
+    ingress_rules = [
+      { port = 443, cidr_blocks = ["not-a-cidr"], description = "Bad CIDR" }
+    ]
+  }
+
+  expect_failures = [var.ingress_rules]
+}
+
 # =============================================================================
 # Negative Tests - Preconditions (hard errors on aws_instance)
 # =============================================================================
@@ -287,6 +375,70 @@ run "warns_kms_without_cloudwatch" {
   }
 
   expect_failures = [check.kms_key_requires_cloudwatch]
+}
+
+run "warns_io1_needs_iops" {
+  command = plan
+
+  variables {
+    subnet_id       = "subnet-12345678"
+    key_pair_name   = "test-key"
+    ebs_volume_type = "io1"
+  }
+
+  expect_failures = [check.iops_required_for_io_volumes]
+}
+
+run "warns_io2_needs_iops" {
+  command = plan
+
+  variables {
+    subnet_id       = "subnet-12345678"
+    key_pair_name   = "test-key"
+    ebs_volume_type = "io2"
+  }
+
+  expect_failures = [check.iops_required_for_io_volumes]
+}
+
+run "warns_throughput_not_for_io1" {
+  command = plan
+
+  variables {
+    subnet_id       = "subnet-12345678"
+    key_pair_name   = "test-key"
+    ebs_volume_type = "io1"
+    ebs_iops        = 3000
+    ebs_throughput  = 250
+  }
+
+  expect_failures = [check.throughput_only_for_gp3]
+}
+
+run "warns_iops_not_for_gp2" {
+  command = plan
+
+  variables {
+    subnet_id       = "subnet-12345678"
+    key_pair_name   = "test-key"
+    ebs_volume_type = "gp2"
+    ebs_iops        = 3000
+  }
+
+  expect_failures = [check.iops_not_for_gp2]
+}
+
+run "warns_eip_without_public_ip" {
+  command = plan
+
+  variables {
+    subnet_id            = "subnet-12345678"
+    key_pair_name        = "test-key"
+    associate_elastic_ip = true
+    enable_public_ip     = false
+  }
+
+  expect_failures = [check.elastic_ip_without_public_ip]
 }
 
 # =============================================================================
@@ -450,5 +602,92 @@ run "accepts_custom_name" {
     subnet_id     = "subnet-12345678"
     key_pair_name = "test-key"
     name          = "my-custom-fips-server"
+  }
+}
+
+run "accepts_public_ip_disabled" {
+  command = plan
+
+  variables {
+    subnet_id        = "subnet-12345678"
+    key_pair_name    = "test-key"
+    enable_public_ip = false
+  }
+}
+
+run "accepts_elastic_ip" {
+  command = plan
+
+  variables {
+    subnet_id            = "subnet-12345678"
+    key_pair_name        = "test-key"
+    associate_elastic_ip = true
+  }
+}
+
+run "accepts_io1_with_iops" {
+  command = plan
+
+  variables {
+    subnet_id       = "subnet-12345678"
+    key_pair_name   = "test-key"
+    ebs_volume_type = "io1"
+    ebs_iops        = 5000
+  }
+}
+
+run "accepts_io2_with_iops" {
+  command = plan
+
+  variables {
+    subnet_id       = "subnet-12345678"
+    key_pair_name   = "test-key"
+    ebs_volume_type = "io2"
+    ebs_iops        = 10000
+  }
+}
+
+run "accepts_gp2" {
+  command = plan
+
+  variables {
+    subnet_id       = "subnet-12345678"
+    key_pair_name   = "test-key"
+    ebs_volume_type = "gp2"
+  }
+}
+
+run "accepts_gp3_custom_iops_throughput" {
+  command = plan
+
+  variables {
+    subnet_id       = "subnet-12345678"
+    key_pair_name   = "test-key"
+    ebs_volume_type = "gp3"
+    ebs_iops        = 5000
+    ebs_throughput  = 500
+  }
+}
+
+run "accepts_ingress_rules" {
+  command = plan
+
+  variables {
+    subnet_id     = "subnet-12345678"
+    key_pair_name = "test-key"
+    ingress_rules = [
+      { port = 443, cidr_blocks = ["0.0.0.0/0"], description = "HTTPS" },
+      { port = 8080, cidr_blocks = ["10.0.0.0/8"], description = "App" }
+    ]
+  }
+}
+
+run "accepts_empty_ingress_rules" {
+  command = plan
+
+  variables {
+    subnet_id     = "subnet-12345678"
+    key_pair_name = "test-key"
+    ingress_rules = []
   }
 }
