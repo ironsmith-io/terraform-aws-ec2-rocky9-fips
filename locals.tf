@@ -1,6 +1,5 @@
 locals {
   ami_id = var.ami_id != null ? var.ami_id : data.aws_ami.rocky9_fips.id
-
   use_instance_profile = (
     length(var.aws_iam_policy_arns) > 0 ||
     var.enable_cloudwatch_logs ||

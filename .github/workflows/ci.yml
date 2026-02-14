@@ -5,14 +5,18 @@ on:
     branches: [main]
   push:
     branches: [main]
+  workflow_call:
 
 permissions:
   contents: read
 
 jobs:
   validate:
-    name: Validate
+    name: Validate (TF ${{ matrix.terraform_version }})
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        terraform_version: ["1.5.7", "latest"]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -20,7 +24,7 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: "~> 1.7"
+          terraform_version: ${{ matrix.terraform_version }}
 
       - name: Terraform Format Check
         run: terraform fmt -check -recursive -diff
@@ -32,9 +36,39 @@ jobs:
         run: terraform validate
 
   unit-tests:
-    name: Unit Tests
+    name: Unit Tests (TF ${{ matrix.terraform_version }})
     runs-on: ubuntu-latest
     needs: validate
+    strategy:
+      matrix:
+        terraform_version: ["1.7.0", "latest"]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ matrix.terraform_version }}
+
+      - name: Terraform Init
+        run: terraform init -backend=false
+
+      - name: Run Unit Tests
+        run: terraform test -filter=tests/unit.tftest.hcl
+
+  validate-examples:
+    name: Validate Examples
+    runs-on: ubuntu-latest
+    needs: validate
+    strategy:
+      matrix:
+        example:
+          - minimal
+          - complete
+          - ssm-only
+          - private-subnet
+          - full-monitoring
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -45,10 +79,12 @@ jobs:
           terraform_version: "~> 1.7"
 
       - name: Terraform Init
+        working-directory: examples/${{ matrix.example }}
         run: terraform init -backend=false
 
-      - name: Run Unit Tests
-        run: terraform test -filter=tests/unit.tftest.hcl
+      - name: Terraform Validate
+        working-directory: examples/${{ matrix.example }}
+        run: terraform validate
 
   security:
     name: Security Scan

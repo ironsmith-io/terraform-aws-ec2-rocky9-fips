@@ -7,14 +7,14 @@ data "aws_subnet" "selected" {
 data "aws_region" "current" {}
 data "aws_partition" "current" {}
 
-# Auto-discover latest ironsmith Rocky 9 FIPS AMI
+# Auto-discover latest Ironsmith Rocky 9 FIPS AMI
 data "aws_ami" "rocky9_fips" {
   most_recent = true
   owners      = [var.ami_owner]
 
   filter {
     name   = "name"
-    values = ["ironsmith-rocky9-fips-*"]
+    values = ["Ironsmith-Rocky-9-FIPS-*"]
   }
 
   filter {

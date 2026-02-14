@@ -36,7 +36,7 @@ variable "ami_owner" {
 variable "ami_product_code" {
   type        = string
   default     = "5fbnogz030e3m2ddf2yvlqhho"
-  description = "AWS Marketplace product code for the ironsmith Rocky 9 FIPS AMI"
+  description = "AWS Marketplace product code for the Ironsmith Rocky 9 FIPS AMI"
 }
 
 variable "instance_type" {
@@ -59,6 +59,40 @@ variable "root_volume_size" {
   type        = number
   default     = 10
   description = "Root EBS volume size in GB"
+  validation {
+    condition     = var.root_volume_size >= 10
+    error_message = "Root volume must be at least 10 GB (Rocky Linux minimum)."
+  }
+}
+
+variable "ebs_volume_type" {
+  type        = string
+  default     = "gp3"
+  description = "EBS volume type for the root volume"
+  validation {
+    condition     = contains(["gp3", "gp2", "io1", "io2"], var.ebs_volume_type)
+    error_message = "EBS volume type must be one of: gp3, gp2, io1, io2."
+  }
+}
+
+variable "ebs_iops" {
+  type        = number
+  default     = null
+  description = "Provisioned IOPS for the root volume. Required for io1/io2, optional for gp3 (default 3000)."
+  validation {
+    condition     = var.ebs_iops == null || try(var.ebs_iops >= 3000 && var.ebs_iops <= 64000, false)
+    error_message = "EBS IOPS must be between 3000 and 64000 when set."
+  }
+}
+
+variable "ebs_throughput" {
+  type        = number
+  default     = null
+  description = "Throughput in MiB/s for the root volume. Only applicable to gp3 (default 125)."
+  validation {
+    condition     = var.ebs_throughput == null || try(var.ebs_throughput >= 125 && var.ebs_throughput <= 1000, false)
+    error_message = "EBS throughput must be between 125 and 1000 MiB/s when set."
+  }
 }
 
 variable "create_spot_instance" {
@@ -88,6 +122,42 @@ variable "user_data_extra" {
 #=============================================================================
 # Network & Access
 #=============================================================================
+
+variable "enable_public_ip" {
+  type        = bool
+  default     = true
+  description = "Associate a public IP address with the instance. Set to false for private subnet deployments."
+}
+
+variable "associate_elastic_ip" {
+  type        = bool
+  default     = false
+  description = "Create and associate an Elastic IP for a stable public IP across stop/start cycles."
+}
+
+variable "ingress_rules" {
+  type = list(object({
+    port        = number
+    cidr_blocks = list(string)
+    description = string
+  }))
+  default     = []
+  description = "Additional security group ingress rules beyond SSH."
+  validation {
+    condition = alltrue([
+      for r in var.ingress_rules : r.port >= 1 && r.port <= 65535
+    ])
+    error_message = "All ingress rule ports must be between 1 and 65535."
+  }
+  validation {
+    condition = alltrue([
+      for r in var.ingress_rules : alltrue([
+        for c in r.cidr_blocks : can(cidrnetmask(c))
+      ])
+    ])
+    error_message = "All ingress rule CIDR blocks must be valid IPv4 CIDR addresses."
+  }
+}
 
 variable "ip_allow_ssh" {
   type        = set(string)

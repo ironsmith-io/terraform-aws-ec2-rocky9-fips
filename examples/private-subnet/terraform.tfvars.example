@@ -1,0 +1,2 @@
+subnet_id  = "subnet-xxxxxxxxxxxxxxxxx"  # Must be a private subnet with NAT gateway
+aws_region = "us-east-1"

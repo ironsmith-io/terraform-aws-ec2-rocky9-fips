@@ -10,6 +10,7 @@ archive/
 *.tfstate
 *.tfstate.*
 
+*.bak
 
 # Crash log files
 crash.log
@@ -51,12 +52,16 @@ terraform.rc
 # Keys and certificates
 *.pem
 *.key
+id_*_rocky9_fips*
 
 # Lock files (reusable modules should not pin provider hashes)
 .terraform.lock.hcl
 
 # Claude Code
 CLAUDE.md
+
+# Python virtual environment (used for diagram generation)
+.venv/
 
 # OS
 .DS_Store

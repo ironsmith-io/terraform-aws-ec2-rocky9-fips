@@ -31,6 +31,40 @@ variable "create_spot_instance" {
   default = false
 }
 
+variable "ebs_volume_type" {
+  type    = string
+  default = "gp3"
+}
+
+variable "ebs_iops" {
+  type    = number
+  default = null
+}
+
+variable "ebs_throughput" {
+  type    = number
+  default = null
+}
+
+variable "enable_public_ip" {
+  type    = bool
+  default = true
+}
+
+variable "associate_elastic_ip" {
+  type    = bool
+  default = false
+}
+
+variable "ingress_rules" {
+  type = list(object({
+    port        = number
+    cidr_blocks = list(string)
+    description = string
+  }))
+  default = []
+}
+
 variable "ip_allow_ssh" {
   type    = set(string)
   default = []

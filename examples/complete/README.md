@@ -4,6 +4,36 @@ Deploys a Rocky Linux 9 FIPS instance with all configurable features.
 
 ## Usage
 
+```hcl
+module "rocky9_fips" {
+  source  = "ironsmith-io/ec2-rocky9-fips/aws"
+  version = "~> 1.0"
+
+  subnet_id     = "subnet-xxxxxxxxx"
+  key_pair_name = "my-keypair"
+
+  # Instance
+  instance_type = "t3.medium"
+  name          = "my-fips-server"
+
+  # Network
+  ip_allow_ssh = ["10.0.0.0/8"]
+  enable_ssh   = true
+  enable_ssm   = true
+
+  # Monitoring
+  enable_cloudwatch_logs = true
+  enable_security_alarms = true
+  create_sns_topic       = true
+  alarm_email            = "alerts@example.com"
+
+  # Data Protection
+  enable_ebs_snapshots = true
+}
+```
+
+### Local Development
+
 ```bash
 cp terraform.tfvars.example terraform.tfvars
 # Edit terraform.tfvars with your values
