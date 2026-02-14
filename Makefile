@@ -4,6 +4,22 @@ EXAMPLE_DIR = examples/complete
 SSH_KEY     = ./id_rsa_rocky9_fips
 KEY_NAME    = ironsmith-rocky9-fips
 
+# Reusable fragments for instance access targets
+PUBLIC_IP = $$(cd $(EXAMPLE_DIR) && terraform output -raw public_ip 2>/dev/null)
+INSTANCE_ID = $$(cd $(EXAMPLE_DIR) && terraform output -raw instance_id 2>/dev/null)
+SSH_CMD = ssh -i $(SSH_KEY) rocky@$(PUBLIC_IP)
+
+# Guard: require a deployed instance (used by access/debug targets)
+# Pipes terraform output through grep to match a valid IP, filtering out
+# ANSI warning text that terraform writes to stdout when no outputs exist.
+define require-instance
+	@IP=$$(cd $(EXAMPLE_DIR) && terraform output -raw public_ip 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+'); \
+	if [ -z "$$IP" ]; then \
+		echo "No instance deployed. Run 'make apply' first."; \
+		exit 1; \
+	fi
+endef
+
 # Terminal colors (graceful degradation for non-interactive shells)
 GREEN  := $(shell tput -Txterm setaf 2 2>/dev/null)
 YELLOW := $(shell tput -Txterm setaf 3 2>/dev/null)
@@ -125,10 +141,12 @@ ssh:
 		echo "Run 'make keygen' to generate one."; \
 		exit 1; \
 	fi
-	ssh -i $(SSH_KEY) rocky@$$(cd $(EXAMPLE_DIR) && terraform output -raw public_ip)
+	$(require-instance)
+	$(SSH_CMD)
 
 ssm:
-	aws ssm start-session --target $$(cd $(EXAMPLE_DIR) && terraform output -raw instance_id)
+	$(require-instance)
+	aws ssm start-session --target $(INSTANCE_ID)
 
 keygen:
 	@if [ -f "$(SSH_KEY)" ]; then \
@@ -195,18 +213,21 @@ logs:
 
 # Debug targets
 fips-verify:
+	$(require-instance)
 	@echo "Verifying FIPS mode on instance..."
-	@ssh -i $(SSH_KEY) rocky@$$(cd $(EXAMPLE_DIR) && terraform output -raw public_ip) \
+	@$(SSH_CMD) \
 		"echo '=== FIPS Verification ===' && \
 		echo 'fips_enabled:' \$$(cat /proc/sys/crypto/fips_enabled) && \
 		echo 'crypto_policy:' \$$(update-crypto-policies --show) && \
 		sudo fips-mode-setup --check"
 
 cloud-init:
-	ssh -i $(SSH_KEY) rocky@$$(cd $(EXAMPLE_DIR) && terraform output -raw public_ip) "sudo tail -100 /var/log/cloud-init-output.log"
+	$(require-instance)
+	$(SSH_CMD) "sudo tail -100 /var/log/cloud-init-output.log"
 
 status:
-	ssh -i $(SSH_KEY) rocky@$$(cd $(EXAMPLE_DIR) && terraform output -raw public_ip) "sudo systemctl status sshd --no-pager"
+	$(require-instance)
+	$(SSH_CMD) "sudo systemctl status sshd --no-pager"
 
 #=============================================================================
 # Testing targets
