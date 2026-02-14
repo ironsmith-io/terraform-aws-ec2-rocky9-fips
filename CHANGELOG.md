@@ -5,6 +5,37 @@ All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/) and uses
 [Conventional Commits](https://www.conventionalcommits.org/) for automated releases.
 
+## [v1.1.0](https://github.com/ironsmith-io/terraform-aws-ec2-rocky9-fips/compare/v1.0.1...v1.1.0) (2026-02-14)
+
+### Features
+
+- 6 new variables: `enable_public_ip`, `associate_elastic_ip`, `ingress_rules`, `ebs_volume_type`, `ebs_iops`, `ebs_throughput`
+- Elastic IP support with conditional `aws_eip` and `aws_eip_association`
+- Dynamic security group ingress rules
+- Parameterized root EBS volume (volume type, IOPS, throughput)
+- 3 new deployment examples: `ssm-only`, `private-subnet`, `full-monitoring`
+- NIST 800-53 control mapping and GovCloud compatibility in SECURITY.md
+- Makefile `EXAMPLE=` parameter to target any example directory
+
+### Bug Fixes
+
+- Null-safe variable validations for Terraform 1.7.x compatibility (`ebs_iops`, `ebs_throughput`)
+
+### Refactoring
+
+- Split 621-line main.tf into 7 domain-specific files (`eip.tf`, `iam.tf`, `monitoring.tf`, `alarms.tf`, `dlm.tf`, `checks.tf`)
+- Enhanced `.tflint.hcl` with `terraform_unused_declarations`, `terraform_deprecated_index`, and AWS plugin
+
+### Tests
+
+- 4 new check block warning tests (EIP, io IOPS, throughput, gp2 IOPS) — 58 unit tests total
+- Spot instance integration test using AWS SDK `DescribeInstances`
+
+### Documentation
+
+- Example READMEs with Terraform Registry source blocks
+- Cost estimation section in README
+
 ## [v1.0.1](https://github.com/ironsmith-io/terraform-aws-ec2-rocky9-fips/compare/v1.0.0...v1.0.1) (2026-02-08)
 
 ### Bug Fixes
