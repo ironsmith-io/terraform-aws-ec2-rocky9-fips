@@ -20,6 +20,36 @@ jobs:
       - run: terraform init -backend=false
       - run: terraform validate
 
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    needs: validate
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - run: terraform init -backend=false
+      - run: terraform test -filter=tests/unit.tftest.hcl
+
+  validate-examples:
+    name: Examples (${{ matrix.example }})
+    runs-on: ubuntu-latest
+    needs: validate
+    strategy:
+      matrix:
+        example:
+          - minimal
+          - complete
+          - ssm-only
+          - private-subnet
+          - full-monitoring
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - run: terraform init -backend=false
+        working-directory: examples/${{ matrix.example }}
+      - run: terraform validate
+        working-directory: examples/${{ matrix.example }}
+
   lint:
     name: Lint
     runs-on: ubuntu-latest
