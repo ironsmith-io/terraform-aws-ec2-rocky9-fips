@@ -301,7 +301,7 @@ No modules.
 | <a name="input_cloudwatch_log_retention_days"></a> [cloudwatch\_log\_retention\_days](#input\_cloudwatch\_log\_retention\_days) | CloudWatch Logs retention in days | `number` | `365` | no |
 | <a name="input_create_sns_topic"></a> [create\_sns\_topic](#input\_create\_sns\_topic) | Create an SNS topic for alarm notifications. If false, use alarm\_sns\_topic\_arn for existing topic. | `bool` | `false` | no |
 | <a name="input_create_spot_instance"></a> [create\_spot\_instance](#input\_create\_spot\_instance) | Create an EC2 Spot Instance. Warning: spot instances can be interrupted by AWS. | `bool` | `false` | no |
-| <a name="input_delete_volume_on_termination"></a> [delete\_volume\_on\_termination](#input\_delete\_volume\_on\_termination) | Delete EBS root volume when instance is terminated. Set to false to preserve data. | `bool` | `false` | no |
+| <a name="input_delete_volume_on_termination"></a> [delete\_volume\_on\_termination](#input\_delete\_volume\_on\_termination) | Delete EBS root volume when instance is terminated. Set to false to preserve data. | `bool` | `true` | no |
 | <a name="input_ebs_iops"></a> [ebs\_iops](#input\_ebs\_iops) | Provisioned IOPS for the root volume. Required for io1/io2, optional for gp3 (default 3000). | `number` | `null` | no |
 | <a name="input_ebs_throughput"></a> [ebs\_throughput](#input\_ebs\_throughput) | Throughput in MiB/s for the root volume. Only applicable to gp3 (default 125). | `number` | `null` | no |
 | <a name="input_ebs_volume_type"></a> [ebs\_volume\_type](#input\_ebs\_volume\_type) | EBS volume type for the root volume | `string` | `"gp3"` | no |

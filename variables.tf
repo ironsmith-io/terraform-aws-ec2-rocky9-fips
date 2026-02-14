@@ -109,7 +109,7 @@ variable "enable_termination_protection" {
 
 variable "delete_volume_on_termination" {
   type        = bool
-  default     = false
+  default     = true
   description = "Delete EBS root volume when instance is terminated. Set to false to preserve data."
 }
 
