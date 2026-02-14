@@ -24,9 +24,40 @@ The AMI's cryptographic module is validated under [CMVP Certificate #5113](https
 
 ### What is NOT validated
 
-- **Kernel versions beyond 9.2** — The AMI ships Rocky Linux 9.x (latest). While FIPS mode is enabled and the same crypto policies apply, the specific kernel binary may differ from the validated version. NIST has not validated later kernels under #5113.
+- **Kernel versions beyond 9.2** — The AMI ships Rocky Linux 9.x (latest). The FIPS cryptographic module is functionally identical on later kernels, but the specific binary has not been separately validated under CMVP #5113. FIPS mode is enabled and the same crypto policies apply. Organizations requiring exact certificate-to-binary traceability should pin to the 9.2 AMI using the `ami_id` variable.
 - **Application-layer crypto** — Software installed after provisioning (via `user_data_extra` or manually) must independently comply with FIPS requirements. The system-wide crypto policy (`FIPS`) restricts OpenSSL and NSS, but applications using their own crypto libraries are not covered.
 - **AWS infrastructure** — EBS encryption, network encryption, and IAM are AWS's responsibility under the [AWS shared responsibility model](https://aws.amazon.com/compliance/shared-responsibility-model/).
+
+## NIST 800-53 Control Mapping
+
+This module addresses the following NIST 800-53 controls. This mapping is informational and does not constitute a compliance certification — organizations must validate controls within their own authorization boundary.
+
+| Control | Title | Module Feature |
+|---------|-------|----------------|
+| SC-13 | Cryptographic Protection | FIPS 140-3 kernel mode (CMVP #5113), system-wide FIPS crypto policy |
+| SC-28 | Protection of Information at Rest | EBS encryption always enabled (`encrypted = true`) |
+| AC-17 | Remote Access | SSH and SSM access controls, `ip_allow_ssh` CIDR allowlist, conditional port 22 |
+| AC-3 | Access Enforcement | IAM role with least-privilege policies, IMDSv2 enforced |
+| AU-2 | Audit Events | CloudWatch log shipping (syslog, secure, audit logs) |
+| AU-6 | Audit Review, Analysis, and Reporting | CloudWatch dashboard, security alarms, SNS notifications |
+| CM-7 | Least Functionality | Conditional SSH, conditional agents, no unnecessary services |
+| CP-9 | System Backup | Automated EBS snapshots via DLM |
+| SI-2 | Flaw Remediation | Security patching on boot via cloud-init (`package_upgrade_type: security`) |
+| SI-4 | System Monitoring | CloudWatch metrics (CPU, memory, disk), status check alarms |
+
+## GovCloud Compatibility
+
+This module supports AWS GovCloud (US) regions. ARN construction uses `data.aws_partition.current` throughout, which resolves to `aws-us-gov` in GovCloud and `aws-cn` in China regions.
+
+**Tested partitions:**
+
+| Partition | Regions | Status |
+|-----------|---------|--------|
+| `aws` | us-east-1, us-west-2 | Tested in CI and integration tests |
+| `aws-us-gov` | us-gov-west-1, us-gov-east-1 | Supported (partition-aware ARNs), not tested in CI |
+| `aws-cn` | cn-north-1, cn-northwest-1 | Supported (partition-aware ARNs), not tested in CI |
+
+> **Note:** The AWS Marketplace AMI subscription must be accepted in each partition separately. GovCloud accounts require a separate Marketplace subscription from commercial accounts.
 
 ## Module Hardening
 

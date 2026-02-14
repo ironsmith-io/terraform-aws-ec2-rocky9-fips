@@ -17,6 +17,7 @@ Terraform module that launches an EC2 instance from the [ironsmith Rocky Linux 9
 - **Auto-discovers** the latest FIPS AMI, or pin a specific version
 - **Feature flags** for CloudWatch, SSM, snapshots, alarms -- all opt-in
 - **Security-first defaults** -- IMDSv2 enforced, EBS encrypted, empty CIDR defaults
+- **GovCloud compatible** -- partition-aware ARNs via `data.aws_partition.current` ([details](https://github.com/ironsmith-io/terraform-aws-ec2-rocky9-fips/blob/main/SECURITY.md#govcloud-compatibility))
 
 ## Prerequisites
 
@@ -199,8 +200,11 @@ make status
 
 ## Examples
 
-- [Minimal](https://github.com/ironsmith-io/terraform-aws-ec2-rocky9-fips/tree/main/examples/minimal) - Bare minimum deployment
-- [Complete](https://github.com/ironsmith-io/terraform-aws-ec2-rocky9-fips/tree/main/examples/complete) - All features enabled
+- [Minimal](https://github.com/ironsmith-io/terraform-aws-ec2-rocky9-fips/tree/main/examples/minimal) - SSH only, no agents, no monitoring
+- [SSM-Only](https://github.com/ironsmith-io/terraform-aws-ec2-rocky9-fips/tree/main/examples/ssm-only) - No SSH, no key pair, SSM access only
+- [Private Subnet](https://github.com/ironsmith-io/terraform-aws-ec2-rocky9-fips/tree/main/examples/private-subnet) - No public IP, SSM + CloudWatch
+- [Full Monitoring](https://github.com/ironsmith-io/terraform-aws-ec2-rocky9-fips/tree/main/examples/full-monitoring) - All alarms, SNS, snapshots, termination protection
+- [Complete](https://github.com/ironsmith-io/terraform-aws-ec2-rocky9-fips/tree/main/examples/complete) - All variables exposed for customization
 
 ## Cost Estimation
 

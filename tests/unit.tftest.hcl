@@ -691,3 +691,60 @@ run "accepts_empty_ingress_rules" {
     ingress_rules = []
   }
 }
+
+# =============================================================================
+# Example Pattern Tests - validate variable combos from examples/
+# =============================================================================
+
+run "accepts_ssm_only_pattern" {
+  command = plan
+
+  variables {
+    subnet_id  = "subnet-12345678"
+    enable_ssh = false
+    enable_ssm = true
+  }
+}
+
+run "accepts_private_subnet_pattern" {
+  command = plan
+
+  variables {
+    subnet_id              = "subnet-12345678"
+    enable_public_ip       = false
+    enable_ssh             = false
+    enable_ssm             = true
+    enable_cloudwatch_logs = true
+  }
+}
+
+run "accepts_full_monitoring_pattern" {
+  command = plan
+
+  variables {
+    subnet_id              = "subnet-12345678"
+    key_pair_name          = "test-key"
+    ip_allow_ssh           = ["10.0.0.0/8"]
+    enable_ssh             = true
+    enable_ssm             = true
+    enable_cloudwatch_logs = true
+    enable_security_alarms = true
+    create_sns_topic       = true
+    alarm_email            = "alerts@example.com"
+    enable_ebs_snapshots   = true
+  }
+}
+
+run "accepts_private_subnet_with_eip_warns" {
+  command = plan
+
+  variables {
+    subnet_id            = "subnet-12345678"
+    enable_public_ip     = false
+    associate_elastic_ip = true
+    enable_ssh           = false
+    enable_ssm           = true
+  }
+
+  expect_failures = [check.elastic_ip_without_public_ip]
+}
