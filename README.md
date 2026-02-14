@@ -35,7 +35,7 @@ This is free -- you only pay for EC2 infrastructure costs. The subscription only
 
 ## Architecture
 
-![Architecture Diagram](docs/architecture.png)
+![Architecture Diagram](https://raw.githubusercontent.com/ironsmith-io/terraform-aws-ec2-rocky9-fips/main/docs/architecture.png)
 
 *Dashed borders indicate opt-in features. Generate with `make diagram`.*
 
@@ -199,8 +199,8 @@ make status
 
 ## Examples
 
-- [Minimal](examples/minimal/) - Bare minimum deployment
-- [Complete](examples/complete/) - All features enabled
+- [Minimal](https://github.com/ironsmith-io/terraform-aws-ec2-rocky9-fips/tree/main/examples/minimal) - Bare minimum deployment
+- [Complete](https://github.com/ironsmith-io/terraform-aws-ec2-rocky9-fips/tree/main/examples/complete) - All features enabled
 
 ## Cost Estimation
 

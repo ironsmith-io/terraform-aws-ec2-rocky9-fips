@@ -1,8 +1,21 @@
 # Minimal Example
 
-Deploys a Rocky Linux 9 FIPS instance with default settings.
+Deploys a Rocky Linux 9 FIPS instance with default settings — SSH access only, no agents, no monitoring.
 
 ## Usage
+
+```hcl
+module "rocky9_fips" {
+  source  = "ironsmith-io/ec2-rocky9-fips/aws"
+  version = "~> 1.0"
+
+  subnet_id     = "subnet-xxxxxxxxx"
+  key_pair_name = "my-keypair"
+  ip_allow_ssh  = ["10.0.0.0/8"]
+}
+```
+
+### Local Development
 
 ```bash
 cp terraform.tfvars.example terraform.tfvars
