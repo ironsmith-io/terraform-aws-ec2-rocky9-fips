@@ -14,7 +14,7 @@ data "aws_ami" "rocky9_fips" {
 
   filter {
     name   = "name"
-    values = ["Ironsmith-Rocky-9-FIPS-*"]
+    values = ["ironsmith-rocky-9-fips-*"]
   }
 
   filter {
