@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/) and uses
 [Conventional Commits](https://www.conventionalcommits.org/) for automated releases.
 
+## [v1.2.1](https://github.com/ironsmith-io/terraform-aws-ec2-rocky9-fips/compare/v1.2.0...v1.2.1) (2026-03-03)
+
+### Documentation
+
+- Add CHANGELOG entry for v1.2.0 release
+
+## [v1.2.0](https://github.com/ironsmith-io/terraform-aws-ec2-rocky9-fips/compare/v1.1.0...v1.2.0) (2026-03-03)
+
+### Features
+
+- General availability on the Terraform Registry
+
+### Bug Fixes
+
+- Change `delete_volume_on_termination` default to `true` to prevent orphaned EBS volumes
+- Lowercase AMI name filter to match actual naming (`ironsmith-rocky-9-fips-*`)
+- Move security patching from `package_upgrade_type` to explicit `dnf upgrade --security -y` in cloud-init runcmd for reliable first-boot patching
+- Terraform 1.7.x null short-circuit compatibility for EBS `iops`/`throughput` validations
+
+### CI/CD
+
+- Add GitHub Actions CI workflow with static analysis and unit tests
+- Add CI status badge to README
+
 ## [v1.1.0](https://github.com/ironsmith-io/terraform-aws-ec2-rocky9-fips/compare/v1.0.1...v1.1.0) (2026-02-14)
 
 ### Features
