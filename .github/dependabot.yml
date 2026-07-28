@@ -1,0 +1,27 @@
+version: 2
+updates:
+  # Go modules for the Terratest integration suite (test-only dependencies).
+  # go.mod lives in /test, so Dependabot must be pointed there, not at the root.
+  - package-ecosystem: "gomod"
+    directory: "/test"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "deps"
+    # Roll all test dependency bumps into a single PR to keep the noise down.
+    groups:
+      go-test-deps:
+        patterns:
+          - "*"
+
+  # GitHub Actions used by the CI workflow (.github/workflows/*).
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "ci"
+    groups:
+      github-actions:
+        patterns:
+          - "*"

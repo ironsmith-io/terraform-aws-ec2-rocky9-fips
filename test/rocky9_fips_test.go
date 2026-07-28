@@ -1,14 +1,15 @@
 package test
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	terratest_aws "github.com/gruntwork-io/terratest/modules/aws"
 	"github.com/gruntwork-io/terratest/modules/files"
 	"github.com/gruntwork-io/terratest/modules/retry"
@@ -52,33 +53,35 @@ func buildSSHHost(t *testing.T, publicIP, privateKeyPath string) ssh.Host {
 
 // waitForCloudInit retries SSH until cloud-init completes.
 func waitForCloudInit(t *testing.T, host ssh.Host) {
-	retry.DoWithRetry(t, "Wait for SSH and cloud-init", 20, 15*time.Second, func() (string, error) {
-		return ssh.CheckSshCommandE(t, host, "cloud-init status --wait")
+	ctx := context.Background()
+	retry.DoWithRetryContext(t, ctx, "Wait for SSH and cloud-init", 20, 15*time.Second, func() (string, error) {
+		return ssh.CheckSSHCommandContextE(t, ctx, &host, "cloud-init status --wait")
 	})
 }
 
 // runFIPSChecks verifies FIPS mode is correctly enabled.
 func runFIPSChecks(t *testing.T, host ssh.Host) {
+	ctx := context.Background()
 	t.Run("fips_kernel_enabled", func(t *testing.T) {
-		result, err := ssh.CheckSshCommandE(t, host, "cat /proc/sys/crypto/fips_enabled")
+		result, err := ssh.CheckSSHCommandContextE(t, ctx, &host, "cat /proc/sys/crypto/fips_enabled")
 		require.NoError(t, err)
 		assert.Contains(t, result, "1", "FIPS mode should be enabled")
 	})
 
 	t.Run("crypto_policy_fips", func(t *testing.T) {
-		result, err := ssh.CheckSshCommandE(t, host, "update-crypto-policies --show")
+		result, err := ssh.CheckSSHCommandContextE(t, ctx, &host, "update-crypto-policies --show")
 		require.NoError(t, err)
 		assert.Contains(t, result, "FIPS", "Crypto policy should be FIPS")
 	})
 
 	t.Run("fips_mode_setup_check", func(t *testing.T) {
-		result, err := ssh.CheckSshCommandE(t, host, "sudo fips-mode-setup --check")
+		result, err := ssh.CheckSSHCommandContextE(t, ctx, &host, "sudo fips-mode-setup --check")
 		require.NoError(t, err)
 		assert.Contains(t, result, "enabled", "fips-mode-setup should report enabled")
 	})
 
 	t.Run("md5_blocked", func(t *testing.T) {
-		result, _ := ssh.CheckSshCommandE(t, host, "openssl md5 /dev/null 2>&1")
+		result, _ := ssh.CheckSSHCommandContextE(t, ctx, &host, "openssl md5 /dev/null 2>&1")
 		blocked := strings.Contains(result, "unsupported") ||
 			strings.Contains(result, "not supported") ||
 			strings.Contains(result, "disabled") ||
@@ -89,20 +92,21 @@ func runFIPSChecks(t *testing.T, host ssh.Host) {
 
 // runRuntimeChecks verifies SELinux, filesystem, and SSH port.
 func runRuntimeChecks(t *testing.T, host ssh.Host) {
+	ctx := context.Background()
 	t.Run("selinux_enforcing", func(t *testing.T) {
-		result, err := ssh.CheckSshCommandE(t, host, "getenforce")
+		result, err := ssh.CheckSSHCommandContextE(t, ctx, &host, "getenforce")
 		require.NoError(t, err)
 		assert.Contains(t, result, "Enforcing", "SELinux should be in Enforcing mode")
 	})
 
 	t.Run("root_filesystem_xfs", func(t *testing.T) {
-		result, err := ssh.CheckSshCommandE(t, host, "mount | grep ' / '")
+		result, err := ssh.CheckSSHCommandContextE(t, ctx, &host, "mount | grep ' / '")
 		require.NoError(t, err)
 		assert.Contains(t, result, "xfs", "Root filesystem should be XFS")
 	})
 
 	t.Run("ssh_port_listening", func(t *testing.T) {
-		result, err := ssh.CheckSshCommandE(t, host, "sudo ss -tlnp | grep ':22 '")
+		result, err := ssh.CheckSSHCommandContextE(t, ctx, &host, "sudo ss -tlnp | grep ':22 '")
 		require.NoError(t, err)
 		assert.Contains(t, result, ":22", "SSH should be listening on port 22")
 	})
@@ -116,6 +120,8 @@ func runRuntimeChecks(t *testing.T, host ssh.Host) {
 // core FIPS functionality, SELinux, filesystem, and tags.
 func TestRocky9FIPSMinimal(t *testing.T) {
 	t.Parallel()
+
+	ctx := context.Background()
 
 	subnetID, keyPair, privateKeyPath, awsRegion := getTestEnv(t)
 	projectDir, err := files.CopyTerraformFolderToTemp("..", "rocky9-minimal-")
@@ -132,14 +138,14 @@ func TestRocky9FIPSMinimal(t *testing.T) {
 		},
 	})
 
-	defer terraform.Destroy(t, terraformOptions)
-	terraform.InitAndApply(t, terraformOptions)
+	defer terraform.DestroyContext(t, ctx, terraformOptions)
+	terraform.InitAndApplyContext(t, ctx, terraformOptions)
 
-	instanceID := terraform.Output(t, terraformOptions, "instance_id")
-	publicIP := terraform.Output(t, terraformOptions, "public_ip")
-	amiID := terraform.Output(t, terraformOptions, "ami_id")
-	amiName := terraform.Output(t, terraformOptions, "ami_name")
-	sshCommand := terraform.Output(t, terraformOptions, "ssh_command")
+	instanceID := terraform.OutputContext(t, ctx, terraformOptions, "instance_id")
+	publicIP := terraform.OutputContext(t, ctx, terraformOptions, "public_ip")
+	amiID := terraform.OutputContext(t, ctx, terraformOptions, "ami_id")
+	amiName := terraform.OutputContext(t, ctx, terraformOptions, "ami_name")
+	sshCommand := terraform.OutputContext(t, ctx, terraformOptions, "ssh_command")
 
 	t.Run("outputs_populated", func(t *testing.T) {
 		assert.NotEmpty(t, instanceID)
@@ -150,7 +156,7 @@ func TestRocky9FIPSMinimal(t *testing.T) {
 	})
 
 	t.Run("tags_correct", func(t *testing.T) {
-		tags := terratest_aws.GetTagsForEc2Instance(t, awsRegion, instanceID)
+		tags := terratest_aws.GetTagsForEc2InstanceContext(t, ctx, awsRegion, instanceID)
 		assert.Equal(t, "rocky9-fips-minimal", tags["Name"])
 		assert.Equal(t, "terraform", tags["ManagedBy"])
 		assert.Equal(t, "terraform-aws-ec2-rocky9-fips", tags["Module"])
@@ -165,7 +171,7 @@ func TestRocky9FIPSMinimal(t *testing.T) {
 
 	t.Run("imdsv2_enforced", func(t *testing.T) {
 		// IMDSv1 should be blocked (http_tokens = "required")
-		result, _ := ssh.CheckSshCommandE(t, host, "curl -s -o /dev/null -w '%{http_code}' http://169.254.169.254/latest/meta-data/instance-id")
+		result, _ := ssh.CheckSSHCommandContextE(t, ctx, &host, "curl -s -o /dev/null -w '%{http_code}' http://169.254.169.254/latest/meta-data/instance-id")
 		assert.Equal(t, "401", strings.TrimSpace(result), "IMDSv1 should return 401 (Unauthorized)")
 	})
 }
@@ -177,6 +183,8 @@ func TestRocky9FIPSMinimal(t *testing.T) {
 // TestRocky9FIPS deploys with CloudWatch and SSM enabled and runs all verifications.
 func TestRocky9FIPS(t *testing.T) {
 	t.Parallel()
+
+	ctx := context.Background()
 
 	subnetID, keyPair, privateKeyPath, awsRegion := getTestEnv(t)
 	projectDir, err := files.CopyTerraformFolderToTemp("..", "rocky9-standard-")
@@ -195,19 +203,19 @@ func TestRocky9FIPS(t *testing.T) {
 		},
 	})
 
-	defer terraform.Destroy(t, terraformOptions)
-	terraform.InitAndApply(t, terraformOptions)
+	defer terraform.DestroyContext(t, ctx, terraformOptions)
+	terraform.InitAndApplyContext(t, ctx, terraformOptions)
 
 	// Collect all outputs
-	instanceID := terraform.Output(t, terraformOptions, "instance_id")
-	publicIP := terraform.Output(t, terraformOptions, "public_ip")
-	privateIP := terraform.Output(t, terraformOptions, "private_ip")
-	amiID := terraform.Output(t, terraformOptions, "ami_id")
-	amiName := terraform.Output(t, terraformOptions, "ami_name")
-	securityGroupID := terraform.Output(t, terraformOptions, "security_group_id")
-	iamRoleArn := terraform.Output(t, terraformOptions, "iam_role_arn")
-	cwLogGroupName := terraform.Output(t, terraformOptions, "cloudwatch_log_group_name")
-	cwDashboardURL := terraform.Output(t, terraformOptions, "cloudwatch_dashboard_url")
+	instanceID := terraform.OutputContext(t, ctx, terraformOptions, "instance_id")
+	publicIP := terraform.OutputContext(t, ctx, terraformOptions, "public_ip")
+	privateIP := terraform.OutputContext(t, ctx, terraformOptions, "private_ip")
+	amiID := terraform.OutputContext(t, ctx, terraformOptions, "ami_id")
+	amiName := terraform.OutputContext(t, ctx, terraformOptions, "ami_name")
+	securityGroupID := terraform.OutputContext(t, ctx, terraformOptions, "security_group_id")
+	iamRoleArn := terraform.OutputContext(t, ctx, terraformOptions, "iam_role_arn")
+	cwLogGroupName := terraform.OutputContext(t, ctx, terraformOptions, "cloudwatch_log_group_name")
+	cwDashboardURL := terraform.OutputContext(t, ctx, terraformOptions, "cloudwatch_dashboard_url")
 
 	t.Run("all_outputs_populated", func(t *testing.T) {
 		assert.NotEmpty(t, instanceID)
@@ -226,7 +234,7 @@ func TestRocky9FIPS(t *testing.T) {
 	})
 
 	t.Run("tags_correct", func(t *testing.T) {
-		tags := terratest_aws.GetTagsForEc2Instance(t, awsRegion, instanceID)
+		tags := terratest_aws.GetTagsForEc2InstanceContext(t, ctx, awsRegion, instanceID)
 		assert.Equal(t, "rocky9-fips-standard", tags["Name"])
 		assert.Equal(t, "terraform", tags["ManagedBy"])
 		assert.Equal(t, "terraform-aws-ec2-rocky9-fips", tags["Module"])
@@ -240,19 +248,19 @@ func TestRocky9FIPS(t *testing.T) {
 	runRuntimeChecks(t, host)
 
 	t.Run("cloudwatch_agent_running", func(t *testing.T) {
-		result, err := ssh.CheckSshCommandE(t, host, "sudo systemctl is-active amazon-cloudwatch-agent")
+		result, err := ssh.CheckSSHCommandContextE(t, ctx, &host, "sudo systemctl is-active amazon-cloudwatch-agent")
 		require.NoError(t, err)
 		assert.Contains(t, result, "active", "CloudWatch agent should be running")
 	})
 
 	t.Run("ssm_agent_running", func(t *testing.T) {
-		result, err := ssh.CheckSshCommandE(t, host, "sudo systemctl is-active amazon-ssm-agent")
+		result, err := ssh.CheckSSHCommandContextE(t, ctx, &host, "sudo systemctl is-active amazon-ssm-agent")
 		require.NoError(t, err)
 		assert.Contains(t, result, "active", "SSM agent should be running")
 	})
 
 	t.Run("imdsv2_enforced", func(t *testing.T) {
-		result, _ := ssh.CheckSshCommandE(t, host, "curl -s -o /dev/null -w '%{http_code}' http://169.254.169.254/latest/meta-data/instance-id")
+		result, _ := ssh.CheckSSHCommandContextE(t, ctx, &host, "curl -s -o /dev/null -w '%{http_code}' http://169.254.169.254/latest/meta-data/instance-id")
 		assert.Equal(t, "401", strings.TrimSpace(result), "IMDSv1 should return 401 (Unauthorized)")
 	})
 }
@@ -265,6 +273,8 @@ func TestRocky9FIPS(t *testing.T) {
 // monitoring resources, alarms, SNS, and EBS snapshots are created.
 func TestRocky9FIPSFullMonitoring(t *testing.T) {
 	t.Parallel()
+
+	ctx := context.Background()
 
 	subnetID, keyPair, privateKeyPath, awsRegion := getTestEnv(t)
 	projectDir, err := files.CopyTerraformFolderToTemp("..", "rocky9-full-")
@@ -287,15 +297,15 @@ func TestRocky9FIPSFullMonitoring(t *testing.T) {
 		},
 	})
 
-	defer terraform.Destroy(t, terraformOptions)
-	terraform.InitAndApply(t, terraformOptions)
+	defer terraform.DestroyContext(t, ctx, terraformOptions)
+	terraform.InitAndApplyContext(t, ctx, terraformOptions)
 
-	instanceID := terraform.Output(t, terraformOptions, "instance_id")
-	publicIP := terraform.Output(t, terraformOptions, "public_ip")
-	snsTopicArn := terraform.Output(t, terraformOptions, "sns_topic_arn")
-	cwLogGroupName := terraform.Output(t, terraformOptions, "cloudwatch_log_group_name")
-	cwDashboardURL := terraform.Output(t, terraformOptions, "cloudwatch_dashboard_url")
-	iamRoleArn := terraform.Output(t, terraformOptions, "iam_role_arn")
+	instanceID := terraform.OutputContext(t, ctx, terraformOptions, "instance_id")
+	publicIP := terraform.OutputContext(t, ctx, terraformOptions, "public_ip")
+	snsTopicArn := terraform.OutputContext(t, ctx, terraformOptions, "sns_topic_arn")
+	cwLogGroupName := terraform.OutputContext(t, ctx, terraformOptions, "cloudwatch_log_group_name")
+	cwDashboardURL := terraform.OutputContext(t, ctx, terraformOptions, "cloudwatch_dashboard_url")
+	iamRoleArn := terraform.OutputContext(t, ctx, terraformOptions, "iam_role_arn")
 
 	t.Run("all_outputs_populated", func(t *testing.T) {
 		assert.NotEmpty(t, instanceID)
@@ -316,7 +326,7 @@ func TestRocky9FIPSFullMonitoring(t *testing.T) {
 	})
 
 	t.Run("tags_correct", func(t *testing.T) {
-		tags := terratest_aws.GetTagsForEc2Instance(t, awsRegion, instanceID)
+		tags := terratest_aws.GetTagsForEc2InstanceContext(t, ctx, awsRegion, instanceID)
 		assert.Equal(t, "rocky9-fips-full", tags["Name"])
 		assert.Equal(t, "terraform", tags["ManagedBy"])
 		assert.Equal(t, "enabled", tags["FIPS"])
@@ -328,13 +338,13 @@ func TestRocky9FIPSFullMonitoring(t *testing.T) {
 	runRuntimeChecks(t, host)
 
 	t.Run("cloudwatch_agent_running", func(t *testing.T) {
-		result, err := ssh.CheckSshCommandE(t, host, "sudo systemctl is-active amazon-cloudwatch-agent")
+		result, err := ssh.CheckSSHCommandContextE(t, ctx, &host, "sudo systemctl is-active amazon-cloudwatch-agent")
 		require.NoError(t, err)
 		assert.Contains(t, result, "active")
 	})
 
 	t.Run("ssm_agent_running", func(t *testing.T) {
-		result, err := ssh.CheckSshCommandE(t, host, "sudo systemctl is-active amazon-ssm-agent")
+		result, err := ssh.CheckSSHCommandContextE(t, ctx, &host, "sudo systemctl is-active amazon-ssm-agent")
 		require.NoError(t, err)
 		assert.Contains(t, result, "active")
 	})
@@ -348,6 +358,8 @@ func TestRocky9FIPSFullMonitoring(t *testing.T) {
 // outputs, tags, and FIPS checks.
 func TestRocky9FIPSSpot(t *testing.T) {
 	t.Parallel()
+
+	ctx := context.Background()
 
 	subnetID, keyPair, privateKeyPath, awsRegion := getTestEnv(t)
 	projectDir, err := files.CopyTerraformFolderToTemp("..", "rocky9-spot-")
@@ -365,12 +377,12 @@ func TestRocky9FIPSSpot(t *testing.T) {
 		},
 	})
 
-	defer terraform.Destroy(t, terraformOptions)
-	terraform.InitAndApply(t, terraformOptions)
+	defer terraform.DestroyContext(t, ctx, terraformOptions)
+	terraform.InitAndApplyContext(t, ctx, terraformOptions)
 
-	instanceID := terraform.Output(t, terraformOptions, "instance_id")
-	publicIP := terraform.Output(t, terraformOptions, "public_ip")
-	amiID := terraform.Output(t, terraformOptions, "ami_id")
+	instanceID := terraform.OutputContext(t, ctx, terraformOptions, "instance_id")
+	publicIP := terraform.OutputContext(t, ctx, terraformOptions, "public_ip")
+	amiID := terraform.OutputContext(t, ctx, terraformOptions, "ami_id")
 
 	t.Run("outputs_populated", func(t *testing.T) {
 		assert.NotEmpty(t, instanceID)
@@ -379,21 +391,21 @@ func TestRocky9FIPSSpot(t *testing.T) {
 	})
 
 	t.Run("instance_is_spot", func(t *testing.T) {
-		ec2Client := terratest_aws.NewEc2Client(t, awsRegion)
+		ec2Client := terratest_aws.NewEc2ClientContext(t, ctx, awsRegion)
 		input := &ec2.DescribeInstancesInput{
-			InstanceIds: []*string{aws.String(instanceID)},
+			InstanceIds: []string{instanceID},
 		}
-		result, err := ec2Client.DescribeInstances(input)
+		result, err := ec2Client.DescribeInstances(ctx, input)
 		require.NoError(t, err)
 		require.Len(t, result.Reservations, 1)
 		require.Len(t, result.Reservations[0].Instances, 1)
 
 		instance := result.Reservations[0].Instances[0]
-		assert.Equal(t, "spot", aws.StringValue(instance.InstanceLifecycle), "Instance should be a spot instance")
+		assert.Equal(t, types.InstanceLifecycleTypeSpot, instance.InstanceLifecycle, "Instance should be a spot instance")
 	})
 
 	t.Run("tags_correct", func(t *testing.T) {
-		tags := terratest_aws.GetTagsForEc2Instance(t, awsRegion, instanceID)
+		tags := terratest_aws.GetTagsForEc2InstanceContext(t, ctx, awsRegion, instanceID)
 		assert.Equal(t, "rocky9-fips-spot", tags["Name"])
 		assert.Equal(t, "terraform", tags["ManagedBy"])
 		assert.Equal(t, "enabled", tags["FIPS"])

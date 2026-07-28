@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/) and uses
 [Conventional Commits](https://www.conventionalcommits.org/) for automated releases.
 
+## [v1.2.2](https://github.com/ironsmith-io/terraform-aws-ec2-rocky9-fips/compare/v1.2.1...v1.2.2) (2026-07-28)
+
+> Maintenance release. No changes to the module itself — only the test suite,
+> CI configuration, and dependencies. Consumers see no functional change.
+
+### Security
+
+- Bumped `golang.org/x/crypto` (test-only) `v0.21.0` → `v0.52.0` and `jackc/pgx/v5`
+  → `v5.9.2` to resolve the outstanding Dependabot alerts.
+
+### Build System
+
+- Upgraded Terratest `v0.47.2` → `v1.0.1` and the Go directive `1.21` → `1.26.0`.
+  Migrated the test suite to Terratest's Context-based APIs and to the AWS SDK for
+  Go **v2** (the spot-instance check now uses `aws-sdk-go-v2`); removed the
+  `aws-sdk-go` v1 dependency.
+
+### Continuous Integration
+
+- Bumped GitHub Actions to their Node 24 runtimes (`checkout@v7`,
+  `setup-terraform@v4`, `setup-tflint@v6`) ahead of the Node 20 removal on 2026-09-16.
+- Added a `Go Checks` job (`go build`, `go vet`, `golangci-lint`) for the `test/`
+  module, enabled CI on pushes to `develop`, and added `.github/dependabot.yml`
+  for weekly `gomod` (test) and `github-actions` updates.
+
 ## [v1.2.1](https://github.com/ironsmith-io/terraform-aws-ec2-rocky9-fips/compare/v1.2.0...v1.2.1) (2026-03-03)
 
 ### Documentation
