@@ -61,7 +61,7 @@ resource "aws_cloudwatch_dashboard" "this" {
           markdown = <<-EOT
 ## Rocky 9 FIPS - Operations Dashboard
 **Instance:** ${local.instance_id} | **FIPS:** Enabled | **SSH:** `ssh rocky@${aws_instance.this.public_ip}`
-**Links:** [EC2 Console](https://${data.aws_region.current.id}.console.aws.amazon.com/ec2/home?region=${data.aws_region.current.id}#InstanceDetails:instanceId=${local.instance_id}) | [CloudWatch Logs](https://${data.aws_region.current.id}.console.aws.amazon.com/cloudwatch/home?region=${data.aws_region.current.id}#logsV2:log-groups/log-group/${local.log_group_name_url_encoded})
+**Links:** [EC2 Console](https://${data.aws_region.current.name}.console.aws.amazon.com/ec2/home?region=${data.aws_region.current.name}#InstanceDetails:instanceId=${local.instance_id}) | [CloudWatch Logs](https://${data.aws_region.current.name}.console.aws.amazon.com/cloudwatch/home?region=${data.aws_region.current.name}#logsV2:log-groups/log-group/${local.log_group_name_url_encoded})
 EOT
         }
       },
@@ -73,7 +73,7 @@ EOT
         height = 6
         properties = {
           title  = "CPU Utilization"
-          region = data.aws_region.current.id
+          region = data.aws_region.current.name
           metrics = [
             ["AWS/EC2", "CPUUtilization", "InstanceId", local.instance_id]
           ]
@@ -92,7 +92,7 @@ EOT
         height = 6
         properties = {
           title  = "Memory Used %"
-          region = data.aws_region.current.id
+          region = data.aws_region.current.name
           metrics = [
             ["CWAgent", "mem_used_percent", "InstanceId", local.instance_id]
           ]
@@ -111,7 +111,7 @@ EOT
         height = 6
         properties = {
           title  = "Disk Used %"
-          region = data.aws_region.current.id
+          region = data.aws_region.current.name
           metrics = [
             ["CWAgent", "disk_used_percent", "InstanceId", local.instance_id, "path", "/", "fstype", "xfs"]
           ]
@@ -130,7 +130,7 @@ EOT
         height = 6
         properties = {
           title  = "Network Traffic"
-          region = data.aws_region.current.id
+          region = data.aws_region.current.name
           metrics = [
             ["AWS/EC2", "NetworkIn", "InstanceId", local.instance_id],
             ["AWS/EC2", "NetworkOut", "InstanceId", local.instance_id]
@@ -147,7 +147,7 @@ EOT
         height = 6
         properties = {
           title  = "Status Check Failed"
-          region = data.aws_region.current.id
+          region = data.aws_region.current.name
           metrics = [
             ["AWS/EC2", "StatusCheckFailed", "InstanceId", local.instance_id],
             ["AWS/EC2", "StatusCheckFailed_Instance", "InstanceId", local.instance_id],
@@ -168,7 +168,7 @@ EOT
         height = 6
         properties = {
           title  = "Recent Log Activity"
-          region = data.aws_region.current.id
+          region = data.aws_region.current.name
           query  = "SOURCE '${local.log_group_name}' | fields @timestamp, @message | sort @timestamp desc | limit 50"
         }
       }

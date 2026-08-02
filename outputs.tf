@@ -44,7 +44,7 @@ output "cloudwatch_log_group_name" {
 }
 
 output "cloudwatch_dashboard_url" {
-  value       = var.enable_cloudwatch_logs ? "https://${data.aws_region.current.id}.console.aws.amazon.com/cloudwatch/home?region=${data.aws_region.current.id}#dashboards:name=${aws_cloudwatch_dashboard.this[0].dashboard_name}" : null
+  value       = var.enable_cloudwatch_logs ? "https://${data.aws_region.current.name}.console.aws.amazon.com/cloudwatch/home?region=${data.aws_region.current.name}#dashboards:name=${aws_cloudwatch_dashboard.this[0].dashboard_name}" : null
   description = "CloudWatch Operations Dashboard URL (when CloudWatch is enabled)"
 }
 

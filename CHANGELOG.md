@@ -5,10 +5,9 @@ All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/) and uses
 [Conventional Commits](https://www.conventionalcommits.org/) for automated releases.
 
-## [v1.2.2](https://github.com/ironsmith-io/terraform-aws-ec2-rocky9-fips/compare/v1.2.1...v1.2.2) (2026-07-28)
+## [v1.2.2](https://github.com/ironsmith-io/terraform-aws-ec2-rocky9-fips/compare/v1.2.1...v1.2.2) (2026-08-01)
 
-> Maintenance release. No changes to the module itself — only the test suite,
-> CI configuration, and dependencies. Consumers see no functional change.
+> Maintenance release. No functional change for module consumers, and AWS
 
 ### Security
 
@@ -21,6 +20,11 @@ This project adheres to [Semantic Versioning](https://semver.org/) and uses
   Migrated the test suite to Terratest's Context-based APIs and to the AWS SDK for
   Go **v2** (the spot-instance check now uses `aws-sdk-go-v2`); removed the
   `aws-sdk-go` v1 dependency.
+- Integration tests now provision an **ephemeral RSA-3072 EC2 key pair per test**
+  (generated, imported, and deleted at teardown) instead of depending on a
+  pre-existing `ironsmith-rocky9-fips` key pair and a committed local private key.
+  The suite is now self-contained and region-agnostic, and no longer needs
+  `make keygen`. (`make apply`/`make ssh` still use the stable local key pair.)
 
 ### Continuous Integration
 
@@ -29,6 +33,9 @@ This project adheres to [Semantic Versioning](https://semver.org/) and uses
 - Added a `Go Checks` job (`go build`, `go vet`, `golangci-lint`) for the `test/`
   module, enabled CI on pushes to `develop`, and added `.github/dependabot.yml`
   for weekly `gomod` (test) and `github-actions` updates.
+- Added an AWS provider-version matrix (`~> 5.0` and `~> 6.0`) to the `validate`
+  and unit-test jobs, so both supported provider majors are exercised on every
+  change. (The `aws_region` data source uses `.name`, valid on both majors.)
 
 ## [v1.2.1](https://github.com/ironsmith-io/terraform-aws-ec2-rocky9-fips/compare/v1.2.0...v1.2.1) (2026-03-03)
 

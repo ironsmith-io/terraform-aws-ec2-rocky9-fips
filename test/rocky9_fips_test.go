@@ -2,6 +2,7 @@ package test
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	terratest_aws "github.com/gruntwork-io/terratest/modules/aws"
 	"github.com/gruntwork-io/terratest/modules/files"
+	"github.com/gruntwork-io/terratest/modules/random"
 	"github.com/gruntwork-io/terratest/modules/retry"
 	"github.com/gruntwork-io/terratest/modules/ssh"
 	"github.com/gruntwork-io/terratest/modules/terraform"
@@ -23,15 +25,13 @@ import (
 // Helpers
 // =============================================================================
 
-// getTestEnv returns test configuration using project conventions from
-// `make setup` and `make keygen`. Only TEST_SUBNET_ID is required
-// (read from terraform.tfvars by the Makefile).
-func getTestEnv(t *testing.T) (subnetID, keyPair, privateKeyPath, awsRegion string) {
+// getTestEnv returns the subnet and region for the test deployment. Only
+// TEST_SUBNET_ID is required (the Makefile reads it from terraform.tfvars);
+// TEST_AWS_REGION defaults to us-east-1. SSH key pairs are created per-test by
+// createEphemeralKeyPair, so no pre-existing AWS key pair or local key is needed.
+func getTestEnv(t *testing.T) (subnetID, awsRegion string) {
 	subnetID = os.Getenv("TEST_SUBNET_ID")
 	require.NotEmpty(t, subnetID, "TEST_SUBNET_ID must be set")
-
-	keyPair = "ironsmith-rocky9-fips"
-	privateKeyPath = "../id_rsa_rocky9_fips"
 
 	awsRegion = os.Getenv("TEST_AWS_REGION")
 	if awsRegion == "" {
@@ -40,14 +40,29 @@ func getTestEnv(t *testing.T) (subnetID, keyPair, privateKeyPath, awsRegion stri
 	return
 }
 
-// buildSSHHost creates an SSH host for the given instance.
-func buildSSHHost(t *testing.T, publicIP, privateKeyPath string) ssh.Host {
-	keyPairData, err := os.ReadFile(privateKeyPath)
+// createEphemeralKeyPair generates an RSA-3072 key pair and imports it into EC2
+// in the given region under a unique name, so each test run is self-contained
+// and depends on no pre-existing AWS key pair or local private key file. The
+// caller must defer cleanup, e.g.:
+//
+//	kp := createEphemeralKeyPair(t, ctx, awsRegion, "rocky9-fips-minimal")
+//	defer terratest_aws.DeleteEC2KeyPairContext(t, ctx, kp)
+func createEphemeralKeyPair(t *testing.T, ctx context.Context, region, namePrefix string) *terratest_aws.Ec2Keypair {
+	t.Helper()
+	sshKeyPair, err := ssh.GenerateRSAKeyPairE(t, 3072)
 	require.NoError(t, err)
+	keyName := fmt.Sprintf("%s-%s", namePrefix, random.UniqueID())
+	return terratest_aws.ImportEC2KeyPairContext(t, ctx, region, keyName, sshKeyPair)
+}
+
+// buildSSHHost creates an SSH host for the given instance using the ephemeral
+// key pair. Ec2Keypair embeds *ssh.KeyPair, which carries both the private and
+// public key that Terratest v1.0.1 requires for authentication.
+func buildSSHHost(publicIP string, sshKey *ssh.KeyPair) ssh.Host {
 	return ssh.Host{
 		Hostname:    publicIP,
 		SshUserName: "rocky",
-		SshKeyPair:  &ssh.KeyPair{PrivateKey: string(keyPairData)},
+		SshKeyPair:  sshKey,
 	}
 }
 
@@ -123,7 +138,10 @@ func TestRocky9FIPSMinimal(t *testing.T) {
 
 	ctx := context.Background()
 
-	subnetID, keyPair, privateKeyPath, awsRegion := getTestEnv(t)
+	subnetID, awsRegion := getTestEnv(t)
+	kp := createEphemeralKeyPair(t, ctx, awsRegion, "rocky9-fips-minimal")
+	defer terratest_aws.DeleteEC2KeyPairContext(t, ctx, kp)
+
 	projectDir, err := files.CopyTerraformFolderToTemp("..", "rocky9-minimal-")
 	require.NoError(t, err)
 
@@ -131,7 +149,7 @@ func TestRocky9FIPSMinimal(t *testing.T) {
 		TerraformDir: filepath.Join(projectDir, "examples", "minimal"),
 		Vars: map[string]interface{}{
 			"subnet_id":     subnetID,
-			"key_pair_name": keyPair,
+			"key_pair_name": kp.Name,
 			"ip_allow_ssh":  []string{"0.0.0.0/0"},
 			"name":          "rocky9-fips-minimal",
 			"aws_region":    awsRegion,
@@ -164,7 +182,7 @@ func TestRocky9FIPSMinimal(t *testing.T) {
 		assert.Equal(t, "enabled", tags["FIPS"])
 	})
 
-	host := buildSSHHost(t, publicIP, privateKeyPath)
+	host := buildSSHHost(publicIP, kp.KeyPair)
 	waitForCloudInit(t, host)
 	runFIPSChecks(t, host)
 	runRuntimeChecks(t, host)
@@ -186,7 +204,10 @@ func TestRocky9FIPS(t *testing.T) {
 
 	ctx := context.Background()
 
-	subnetID, keyPair, privateKeyPath, awsRegion := getTestEnv(t)
+	subnetID, awsRegion := getTestEnv(t)
+	kp := createEphemeralKeyPair(t, ctx, awsRegion, "rocky9-fips-standard")
+	defer terratest_aws.DeleteEC2KeyPairContext(t, ctx, kp)
+
 	projectDir, err := files.CopyTerraformFolderToTemp("..", "rocky9-standard-")
 	require.NoError(t, err)
 
@@ -194,7 +215,7 @@ func TestRocky9FIPS(t *testing.T) {
 		TerraformDir: filepath.Join(projectDir, "examples", "complete"),
 		Vars: map[string]interface{}{
 			"subnet_id":              subnetID,
-			"key_pair_name":          keyPair,
+			"key_pair_name":          kp.Name,
 			"ip_allow_ssh":           []string{"0.0.0.0/0"},
 			"name":                   "rocky9-fips-standard",
 			"enable_cloudwatch_logs": true,
@@ -242,7 +263,7 @@ func TestRocky9FIPS(t *testing.T) {
 		assert.Equal(t, "enabled", tags["FIPS"])
 	})
 
-	host := buildSSHHost(t, publicIP, privateKeyPath)
+	host := buildSSHHost(publicIP, kp.KeyPair)
 	waitForCloudInit(t, host)
 	runFIPSChecks(t, host)
 	runRuntimeChecks(t, host)
@@ -276,7 +297,10 @@ func TestRocky9FIPSFullMonitoring(t *testing.T) {
 
 	ctx := context.Background()
 
-	subnetID, keyPair, privateKeyPath, awsRegion := getTestEnv(t)
+	subnetID, awsRegion := getTestEnv(t)
+	kp := createEphemeralKeyPair(t, ctx, awsRegion, "rocky9-fips-full")
+	defer terratest_aws.DeleteEC2KeyPairContext(t, ctx, kp)
+
 	projectDir, err := files.CopyTerraformFolderToTemp("..", "rocky9-full-")
 	require.NoError(t, err)
 
@@ -284,7 +308,7 @@ func TestRocky9FIPSFullMonitoring(t *testing.T) {
 		TerraformDir: filepath.Join(projectDir, "examples", "complete"),
 		Vars: map[string]interface{}{
 			"subnet_id":              subnetID,
-			"key_pair_name":          keyPair,
+			"key_pair_name":          kp.Name,
 			"ip_allow_ssh":           []string{"0.0.0.0/0"},
 			"enable_cloudwatch_logs": true,
 			"enable_ssm":             true,
@@ -332,7 +356,7 @@ func TestRocky9FIPSFullMonitoring(t *testing.T) {
 		assert.Equal(t, "enabled", tags["FIPS"])
 	})
 
-	host := buildSSHHost(t, publicIP, privateKeyPath)
+	host := buildSSHHost(publicIP, kp.KeyPair)
 	waitForCloudInit(t, host)
 	runFIPSChecks(t, host)
 	runRuntimeChecks(t, host)
@@ -361,7 +385,10 @@ func TestRocky9FIPSSpot(t *testing.T) {
 
 	ctx := context.Background()
 
-	subnetID, keyPair, privateKeyPath, awsRegion := getTestEnv(t)
+	subnetID, awsRegion := getTestEnv(t)
+	kp := createEphemeralKeyPair(t, ctx, awsRegion, "rocky9-fips-spot")
+	defer terratest_aws.DeleteEC2KeyPairContext(t, ctx, kp)
+
 	projectDir, err := files.CopyTerraformFolderToTemp("..", "rocky9-spot-")
 	require.NoError(t, err)
 
@@ -369,7 +396,7 @@ func TestRocky9FIPSSpot(t *testing.T) {
 		TerraformDir: filepath.Join(projectDir, "examples", "complete"),
 		Vars: map[string]interface{}{
 			"subnet_id":            subnetID,
-			"key_pair_name":        keyPair,
+			"key_pair_name":        kp.Name,
 			"ip_allow_ssh":         []string{"0.0.0.0/0"},
 			"name":                 "rocky9-fips-spot",
 			"create_spot_instance": true,
@@ -411,7 +438,7 @@ func TestRocky9FIPSSpot(t *testing.T) {
 		assert.Equal(t, "enabled", tags["FIPS"])
 	})
 
-	host := buildSSHHost(t, publicIP, privateKeyPath)
+	host := buildSSHHost(publicIP, kp.KeyPair)
 	waitForCloudInit(t, host)
 	runFIPSChecks(t, host)
 }
