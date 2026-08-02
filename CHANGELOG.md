@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/) and uses
 [Conventional Commits](https://www.conventionalcommits.org/) for automated releases.
 
+## [Unreleased]
+
+### Security
+
+- Bumped `github.com/ulikunitz/xz` (test-only, indirect) `v0.5.10` → `v0.5.15` to
+  resolve a moderate memory-leak advisory (corrupted multi-LZMA archives).
+
 ## [v1.2.2](https://github.com/ironsmith-io/terraform-aws-ec2-rocky9-fips/compare/v1.2.1...v1.2.2) (2026-08-01)
 
 > Maintenance release. No functional change for module consumers, and AWS
