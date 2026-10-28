@@ -4,13 +4,20 @@ updates:
   # go.mod lives in /test, so Dependabot must be pointed there, not at the root.
   - package-ecosystem: "gomod"
     directory: "/test"
+    # The schedule only paces version updates. Security updates are opened as
+    # soon as an advisory is published, regardless of this interval.
     schedule:
-      interval: "weekly"
+      interval: "monthly"
+    # Produces "build(deps): ..." (Conventional Commits; matches the CHANGELOG
+    # "Build System" section). Also applies to security-update PRs.
     commit-message:
-      prefix: "deps"
-    # Roll all test dependency bumps into a single PR to keep the noise down.
+      prefix: "build"
+      include: "scope"
+    # Roll all routine test dependency bumps into a single PR to keep the noise
+    # down. Security updates stay as their own PRs so they can merge immediately.
     groups:
       go-test-deps:
+        applies-to: version-updates
         patterns:
           - "*"
 
@@ -18,10 +25,13 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
+    # Produces "ci(deps): ..." (matches the CHANGELOG "Continuous Integration" section).
     commit-message:
       prefix: "ci"
+      include: "scope"
     groups:
       github-actions:
+        applies-to: version-updates
         patterns:
           - "*"
