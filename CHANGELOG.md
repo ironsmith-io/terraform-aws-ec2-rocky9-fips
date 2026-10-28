@@ -3,18 +3,37 @@
 All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](https://semver.org/) and uses
-[Conventional Commits](https://www.conventionalcommits.org/) for automated releases.
+[Conventional Commits](https://www.conventionalcommits.org/). This file is maintained by hand.
 
-## [Unreleased]
+## [Unreleased](https://github.com/ironsmith-io/terraform-aws-ec2-rocky9-fips/compare/v1.2.2...HEAD)
+
+> Test and CI dependency updates only. No change to the module's `.tf` files.
 
 ### Security
 
 - Bumped `github.com/ulikunitz/xz` (test-only, indirect) `v0.5.10` → `v0.5.15` to
-  resolve a moderate memory-leak advisory (corrupted multi-LZMA archives).
+  resolve a moderate memory-leak advisory (corrupted multi-LZMA archives). (#6)
+- Bumped `github.com/klauspost/compress` (test-only, indirect) `v1.16.5` → `v1.18.7` to
+  resolve a high-severity advisory (integer overflow / out-of-bounds write in `s2`). (#14)
 
-## [v1.2.2](https://github.com/ironsmith-io/terraform-aws-ec2-rocky9-fips/compare/v1.2.1...v1.2.2) (2026-08-01)
+### Build System
 
-> Maintenance release. No functional change for module consumers, and AWS
+- Bumped `github.com/aws/aws-sdk-go-v2/service/ec2` (test-only) `v1.318.0` → `v1.341.0`,
+  with matching indirect `aws-sdk-go-v2` / `smithy-go` updates. (#9, #11, #13, #16)
+- Bumped `github.com/stretchr/testify` (test-only) `v1.11.1` → `v1.12.1`. (#9, #11)
+
+### Continuous Integration
+
+- Bumped `bridgecrewio/checkov-action` `v12.3114.0` → `v12.3135.0`. (#8, #10, #12, #15)
+- Dependabot version updates now run **monthly** (was weekly), still grouped per
+  ecosystem; security updates are unaffected and open as soon as an advisory lands.
+  Commit prefixes changed to Conventional Commits `build(deps):` (Go) and `ci(deps):`
+  (Actions).
+
+## [v1.2.2](https://github.com/ironsmith-io/terraform-aws-ec2-rocky9-fips/compare/v1.2.1...v1.2.2) (2026-08-02)
+
+> Maintenance release. No functional change for module consumers, and AWS provider
+> `~> 5.0` and `~> 6.0` are both verified in CI.
 
 ### Security
 
@@ -38,11 +57,12 @@ This project adheres to [Semantic Versioning](https://semver.org/) and uses
 - Bumped GitHub Actions to their Node 24 runtimes (`checkout@v7`,
   `setup-terraform@v4`, `setup-tflint@v6`) ahead of the Node 20 removal on 2026-09-16.
 - Added a `Go Checks` job (`go build`, `go vet`, `golangci-lint`) for the `test/`
-  module, enabled CI on pushes to `develop`, and added `.github/dependabot.yml`
-  for weekly `gomod` (test) and `github-actions` updates.
+  module and added `.github/dependabot.yml` for weekly `gomod` (test) and
+  `github-actions` updates. CI now runs on pushes to `main` only (`develop` retired).
 - Added an AWS provider-version matrix (`~> 5.0` and `~> 6.0`) to the `validate`
   and unit-test jobs, so both supported provider majors are exercised on every
-  change. (The `aws_region` data source uses `.name`, valid on both majors.)
+  change. The dashboard and `cloudwatch_dashboard_url` output now read the region
+  from `data.aws_region.current.name` instead of `.id` (same value on both majors).
 
 ## [v1.2.1](https://github.com/ironsmith-io/terraform-aws-ec2-rocky9-fips/compare/v1.2.0...v1.2.1) (2026-03-03)
 
