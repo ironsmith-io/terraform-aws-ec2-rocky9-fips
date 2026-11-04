@@ -5,9 +5,10 @@ All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/) and uses
 [Conventional Commits](https://www.conventionalcommits.org/). This file is maintained by hand.
 
-## [Unreleased](https://github.com/ironsmith-io/terraform-aws-ec2-rocky9-fips/compare/v1.2.2...HEAD)
+## [v1.2.3](https://github.com/ironsmith-io/terraform-aws-ec2-rocky9-fips/compare/v1.2.2...v1.2.3) (2026-11-04)
 
-> Test/CI dependency updates and docs only. No change to the module's `.tf` files.
+> Docs and maintenance release. No change to the module's `.tf` files, so no functional
+> change for module consumers.
 
 ### Documentation
 
