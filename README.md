@@ -238,7 +238,7 @@ All costs are approximate monthly estimates for `us-east-1`. Actual costs vary b
 
 ## Maintainers
 
-Maintained by [IRONSmith](https://ironsmith.io/), DevOps & AWS consulting in San Diego.
+Maintained by [IRONSmith](https://ironsmith.io/): DevOps, AWS & Terraform consulting and contract work, remote or on-site in San Diego County.
 
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
