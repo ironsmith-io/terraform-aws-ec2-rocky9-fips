@@ -7,7 +7,11 @@ This project adheres to [Semantic Versioning](https://semver.org/) and uses
 
 ## [Unreleased](https://github.com/ironsmith-io/terraform-aws-ec2-rocky9-fips/compare/v1.2.2...HEAD)
 
-> Test and CI dependency updates only. No change to the module's `.tf` files.
+> Test/CI dependency updates and docs only. No change to the module's `.tf` files.
+
+### Documentation
+
+- Added a Maintainers section to the README.
 
 ### Security
 
@@ -18,13 +22,13 @@ This project adheres to [Semantic Versioning](https://semver.org/) and uses
 
 ### Build System
 
-- Bumped `github.com/aws/aws-sdk-go-v2/service/ec2` (test-only) `v1.318.0` → `v1.341.0`,
-  with matching indirect `aws-sdk-go-v2` / `smithy-go` updates. (#9, #11, #13, #16)
+- Bumped `github.com/aws/aws-sdk-go-v2/service/ec2` (test-only) `v1.318.0` → `v1.343.0`,
+  with matching indirect `aws-sdk-go-v2` / `smithy-go` updates. (#9, #11, #13, #16, #19)
 - Bumped `github.com/stretchr/testify` (test-only) `v1.11.1` → `v1.12.1`. (#9, #11)
 
 ### Continuous Integration
 
-- Bumped `bridgecrewio/checkov-action` `v12.3114.0` → `v12.3135.0`. (#8, #10, #12, #15)
+- Bumped `bridgecrewio/checkov-action` `v12.3114.0` → `v12.3136.0`. (#8, #10, #12, #15, #18)
 - Dependabot version updates now run **monthly** (was weekly), still grouped per
   ecosystem; security updates are unaffected and open as soon as an advisory lands.
   Commit prefixes changed to Conventional Commits `build(deps):` (Go) and `ci(deps):`
